@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DATA — edit this section to add/remove disciplines,
+   rankings categories, and athlete entries.
+   ═══════════════════════════════════════════════════════ */
+
+// 1. DISCIPLINES
+// key: internal identifier   value: display label shown in UI
+const DISCIPLINES = {
+  "50km":    "50 км",
+  "50mi":    "50 Мили",
+  "6h":      "6 Часа",
+  "100km":   "100 км",
+  "100mi":   "100 Мили",
+  "12h":     "12 Часа",
+  "24h":     "24 Часа",
+  "48h":     "48 Часа",
+  "6days":   "6 Дни",
+};
+
+// 2. RANKING CATEGORIES (which disciplines appear as ranking buttons)
+// List keys from DISCIPLINES that should have a rankings page.
+const RANKING_CATEGORIES = [
+  "100km",
+  "6h",
+  "12h",
+  "24h",
+];
+
+// 2b. GENDER EQUIVALENCE FACTORS
+// Used to calculate the male equivalent of a female result.
+// Formula: equivalent = result / factor  (i.e. factor 1.10 → divide time by 1.10)
+const GENDER_FACTORS = {
+  "vitosha":  1.1297,
+  "marathon": 1.0967,
+  "half":     1.1024,
+};
+
+// 2d. WORLD RECORDS (for performance % calculation)
+// mm = male marathon, fm = female marathon
+// mhm = male half marathon, fhm = female half marathon
+const WORLD_RECORDS = {
+  "mm":  "2:01:41",
+  "fm":  "2:13:18",
+  "mhm": "0:57:37",
+  "fhm": "1:03:35",
+};
+// Used to calculate an equivalent time for a different distance.
+// Vitosha 100 → 100 km flat equivalent
+// Marathon → half marathon equivalent
+const DISTANCE_FACTORS = {
+  "vitosha":  0.9350,
+  "marathon": 0.4740,
+  "half":     2.1096,
+};
+
+// 4. PERFORMANCE CALCULATOR REFERENCE TIMES
+// Used to populate the calculator dropdown with world-record-level reference values.
+// Each entry: key (internal id), label (display name), timeBased (true=time, false=distance),
+//             m (male reference), f (female reference, optional)
+const CALC_REFERENCES = [
+  { key: "5k",       label: "5 км",                   timeBased: true,  m: "0:12:35",  f: "0:13:58"  },
+  { key: "10k",      label: "10 км",                  timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
+  { key: "half",     label: "Полумаратон",            timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
+  { key: "marathon", label: "Маратон",               timeBased: true,  m: "2:00:35",  f: "2:09:56"  },
+  { key: "vitosha",  label: "Витоша 100 (~99 км)",  timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
+];
+
+// 3. ATHLETE ENTRIES
+// Fields: category (key from DISCIPLINES), gender ("m" or "f"),
+//         name, result, year, race
+const ENTRIES = [
+  // ── 50 KM ──────────────────────────────────────────
+  { category:"50km", gender:"m", name:"Христо Цветков", result:"3:05:29", year:2025, race:"Spring 360 6h", url:"https://statistik.d-u-v.org/getresultevent.php?event=118078"},
+  { category:"50km", gender:"f", name:"Надежда Ангелова", result:"4:05:43", year:2021, race:"Spring 360 6h", url:"https://statistik.d-u-v.org/getresultevent.php?event=75017" },
+
+  // ── 50 MILES ───────────────────────────────────────
+  {category:"50mi", gender:"m", name:"Христо Цветков", result:"5:30:45", year:2023, race:"Spring 360 12h", url:"https://statistik.d-u-v.org/getresultevent.php?event=96767"},
+  {category:"50mi", gender:"f", name:"Златка Вълчева", result:"7:02:06", year:2026, race:"Danube 12h", url:"https://statistik.d-u-v.org/getresultevent.php?event=130649"},
+
+  // ── 100 MILES ──────────────────────────────────────
+  {category:"100mi", gender:"m", name:"Антон Кадиев", result:"12:40:18", year:2026, race:"Danube 24h", url:"https://statistik.d-u-v.org/getresultevent.php?event=130647"},
+  {category:"100mi", gender:"f", name:"Гергана Малчева", result:"17:50:04", year:2026, race:"Danube 24h", url:"https://statistik.d-u-v.org/getresultevent.php?event=130647"},
+
+  // ── 48 HOURS ───────────────────────────────────────
+  {category:"48h", gender:"m", name:"Владимир Ставрев", result:"372.42", year:2021, race:"Kladno Self-Transcendence 48h", url:"https://statistik.d-u-v.org/getresultevent.php?event=76197"},
+  {category:"48h", gender:"f", name:"Михаела Енгларо", result:"309.74", year:2024, race:"Cursor Poculum 48h", url:"https://statistik.d-u-v.org/getresultevent.php?event=95186"},
+
+  // ── 6 DAYS ─────────────────────────────────────────
+  {category:"6days", gender:"m", name:"Ради Милев", result:"711.39", year:2019, race:"EMU 6 Days", url:"https://statistik.d-u-v.org/getresultevent.php?event=51538"},
+  {category:"6days", gender:"f", name:"Михаела Енгларо", result:"735.05", year:2023, race:"EMU 6 Days", url:"https://statistik.d-u-v.org/getresultevent.php?event=93686"},
+
+  // ── 100 km ──────────────────────────────────────────
+  {category:"100km", gender:"m", name:"Христо Цветков", result:"06:53:12", year:2023, race:"София", url:"https://statistik.d-u-v.org/getresultevent.php?event=96766"},
+  {category:"100km", gender:"m", name:"Иван Генчев", result:"* 7:38:32", year:1978, race:"Кошице"},
+  {category:"100km", gender:"m", name:"Антон Кадиев", result:"07:45:38", year:2026, race:"Русе"},
+  {category:"100km", gender:"m", name:"Минко Ластарджиев", result:"08:05:31", year:2025, race:"София"},
+  {category:"100km", gender:"m", name:"Емил Генов", result:"08:07:51", year:2022, race:"София"},
+  {category:"100km", gender:"m", name:"Йордан Стойков", result:"08:19:21", year:2023, race:"София"},
+  {category:"100km", gender:"m", name:"Красимир Димитров", result:"08:22:20", year:2023, race:"София"},
+  {category:"100km", gender:"m", name:"Владимир Ставрев", result:"08:22:51", year:2019, race:"София"},
+  {category:"100km", gender:"m", name:"Стилян Аврамов", result:"08:25:12", year:2023, race:"София"},
+  {category:"100km", gender:"m", name:"Андрей Гридин", result:"08:29:58", year:2017, race:"София"},
+  {category:"100km", gender:"m", name:"Чавдар Несторов", result:"* 8:31:00", year:1989, race:"Одеса"},
+  {category:"100km", gender:"m", name:"Николай Христов", result:"08:32:07", year:2026, race:"Русе"},
+  {category:"100km", gender:"m", name:"Благой Солаков", result:"08:40:50", year:2025, race:"София"},
+  {category:"100km", gender:"m", name:"Александър Димов", result:"08:43:00", year:2016, race:"София"},
+  {category:"100km", gender:"m", name:"Мариян Недялков", result:"08:45:19", year:2024, race:"София"},
+  {category:"100km", gender:"m", name:"Димитър Томев", result:"08:55:27", year:2024, race:"София"},
+  {category:"100km", gender:"m", name:"Тодор Божков", result:"* 8:59:00", year:1977, race:"Перник"},
+  
+  {category:"100km", gender:"f", name:"Златка Вълчева", result:"08:57:49", year:2026, race:"Русе", url:"https://statistik.d-u-v.org/getresultevent.php?event=130646"},
+  {category:"100km", gender:"f", name:"Малина Вацкичева", result:"09:09:59", year:2002, race:"Подгорица"},
+  {category:"100km", gender:"f", name:"Гергана Малчева", result:"09:38:11", year:2026, race:"Русе"},
+  {category:"100km", gender:"f", name:"Валентина Тодорова", result:"10:15:47", year:2024, race:"Русе"},
+  {category:"100km", gender:"f", name:"Милена Каптебилова", result:"10:34:02", year:2026, race:"Серес"},
+  {category:"100km", gender:"f", name:"Лилия Николова", result:"10:34:29", year:2023, race:"Русе"},
+  {category:"100km", gender:"f", name:"Михаела Енгларо", result:"10:46:23", year:2021, race:"Загреб"},
+  {category:"100km", gender:"f", name:"Нели Ангелова", result:"10:53:53", year:2019, race:"София"},
+  {category:"100km", gender:"f", name:"Боряна Цветкова", result:"11:02:17", year:2022, race:"София"},
+  {category:"100km", gender:"f", name:"Радостина Колева", result:"11:02:20", year:2025, race:"София"},
+  {category:"100km", gender:"f", name:"Миглена Петкова", result:"11:15:18", year:2019, race:"София"},
+  {category:"100km", gender:"f", name:"Веселина Иванова", result:"11:15:55", year:2025, race:"София"},
+  {category:"100km", gender:"f", name:"Гергана Станилова", result:"11:23:26", year:2022, race:"Барселона"},
+
+  // ── 6 ЧАСА ──────────────────────────────────────────
+  {category:"6h", gender:"m", name:"Христо Цветков", result:"87.03", year:2023, race:"София", url:"https://statistik.d-u-v.org/getresultevent.php?event=96768"},
+  {category:"6h", gender:"m", name:"Димитър Шадура", result:"82.25", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Николай Стойчев", result:"79.12", year:2025, race:"София"},
+  {category:"6h", gender:"m", name:"Стилян Аврамов", result:"78.05", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Кристиян Томов", result:"77.70", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Антон Кадиев", result:"77.60", year:2026, race:"Русе"},
+  {category:"6h", gender:"m", name:"Николай Христов", result:"77.54", year:2025, race:"София"},
+  {category:"6h", gender:"m", name:"Минко Ластарджиев", result:"75.99", year:2025, race:"София"},
+  {category:"6h", gender:"m", name:"Виктор Методиев", result:"75.35", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Емил Генов", result:"75.04", year:2023, race:"София"},
+  {category:"6h", gender:"m", name:"Ивайло Анев", result:"74.99", year:2023, race:"София"},
+  {category:"6h", gender:"m", name:"Красимир Димитров", result:"74.69", year:2023, race:"София"},
+  {category:"6h", gender:"m", name:"Атанас Парашкевов", result:"74.67", year:2025, race:"София"},
+  {category:"6h", gender:"m", name:"Велян Кичев", result:"74.46", year:2023, race:"София"},
+  {category:"6h", gender:"m", name:"Васил Костадинов", result:"74.44", year:2021, race:"София"},
+  {category:"6h", gender:"m", name:"Благой Солаков", result:"74.16", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Мариян Недялков", result:"74.05", year:2023, race:"София"},
+  {category:"6h", gender:"m", name:"Йордан Стойков", result:"74.01", year:2024, race:"Русе"},
+  {category:"6h", gender:"m", name:"Александър Божилов", result:"73.37", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Владимир Георгиев", result:"73.27", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Роман Ников", result:"72.86", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Янко Малинов", result:"72.79", year:2026, race:"Русе"},
+  {category:"6h", gender:"m", name:"Павлин Иванов", result:"72.75", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Петър Захов", result:"72.50", year:2024, race:"София"},
+  {category:"6h", gender:"m", name:"Владимир Ставрев", result:"72.46", year:2021, race:"Барселона"},
+
+  {category:"6h", gender:"f", name:"Надежда Ангелова", result:"74.55", year:2021, race:"София", url:"https://statistik.d-u-v.org/getresultevent.php?event=75017"},
+  {category:"6h", gender:"f", name:"Теодора Петкова", result:"70.67", year:2024, race:"София"},
+  {category:"6h", gender:"f", name:"Златка Вълчева", result:"69.20", year:2026, race:"Русе"},
+  {category:"6h", gender:"f", name:"Славена Топалска", result:"68.07", year:2021, race:"София"},
+  {category:"6h", gender:"f", name:"Моника Филипова", result:"66.11", year:2019, race:"София"},
+  {category:"6h", gender:"f", name:"Десислава Николова", result:"66.09", year:2024, race:"София"},
+  {category:"6h", gender:"f", name:"Гергана Малчева", result:"63.60", year:2026, race:"Русе"},
+  {category:"6h", gender:"f", name:"Михаела Христова", result:"63.55", year:2024, race:"София"},
+  {category:"6h", gender:"f", name:"Евгения Аврамова", result:"62.69", year:2024, race:"Русе"},
+  {category:"6h", gender:"f", name:"Ана Ванчева", result:"62.33", year:2021, race:"София"},
+  {category:"6h", gender:"f", name:"Стефка Ганева", result:"61.79", year:2026, race:"Русе"},
+  {category:"6h", gender:"f", name:"Михаела Енгларо", result:"61.65", year:2019, race:"София"},
+  {category:"6h", gender:"f", name:"Милена Каптебилова", result:"60.94", year:2026, race:"Серес"},
+  {category:"6h", gender:"f", name:"Валентина Тодорова", result:"60.40", year:2024, race:"Русе"},
+
+  // ── 12 ЧАСА ──────────────────────────────────────────
+  {category:"12h", gender:"m", name:"Антон Кадиев", result:"152.40", year:2026, race:"Русе", url:"https://statistik.d-u-v.org/getresultevent.php?event=130648"},
+  {category:"12h", gender:"m", name:"Христо Цветков", result:"151.25", year:2021, race:"Лондон"},
+  {category:"12h", gender:"m", name:"Владимир Ставрев", result:"141.30", year:2019, race:"София"},
+  {category:"12h", gender:"m", name:"Йордан Стойков", result:"140.94", year:2023, race:"София"},
+  {category:"12h", gender:"m", name:"Стилян Аврамов", result:"140.45", year:2023, race:"София"},
+  {category:"12h", gender:"m", name:"Николай Христов", result:"136.80", year:2026, race:"Русе"},
+  {category:"12h", gender:"m", name:"Благой Солаков", result:"133.95", year:2025, race:"София"},
+  {category:"12h", gender:"m", name:"Красимир Димитров", result:"133.20", year:2023, race:"София"},
+  {category:"12h", gender:"m", name:"Емил Генов", result:"130.80", year:2020, race:"София"},
+  {category:"12h", gender:"m", name:"Маринян Недялков", result:"130.51", year:2024, race:"София"},
+  {category:"12h", gender:"m", name:"Минко Ластарджиев", result:"128.86", year:2025, race:"София"},
+  {category:"12h", gender:"m", name:"Георги Добрев", result:"125.60", year:2024, race:"Русе"},
+  {category:"12h", gender:"m", name:"Фатих Хюсеинов", result:"125.60", year:2024, race:"Русе"},
+  {category:"12h", gender:"m", name:"Калоян Кючуков", result:"124.89", year:2026, race:"Русе"},
+  {category:"12h", gender:"m", name:"Павлин Иванов", result:"124.60", year:2022, race:"София"},
+  {category:"12h", gender:"m", name:"Ясен Кирилов", result:"124.01", year:2024, race:"София"},
+  {category:"12h", gender:"m", name:"Александър Димов", result:"124.00", year:2019, race:"София"},
+  {category:"12h", gender:"m", name:"Валентин Сурталов", result:"123.63", year:2026, race:"Русе"},
+  {category:"12h", gender:"m", name:"Веселин Данчев", result:"122.80", year:2024, race:"Русе"},
+  {category:"12h", gender:"m", name:"Николай Дончев", result:"122.07", year:2024, race:"Русе"},
+  {category:"12h", gender:"m", name:"Деян Петков", result:"122.01", year:2019, race:"Векшьо"},
+  {category:"12h", gender:"m", name:"Велин Дилов", result:"121.80", year:2019, race:"София"},
+  {category:"12h", gender:"m", name:"Димитър Томев", result:"120.80", year:2024, race:"Лутраки"},
+  {category:"12h", gender:"m", name:"Григор Върбанов", result:"120.71", year:2022, race:"София"},
+  {category:"12h", gender:"m", name:"Николай Петков", result:"120.40", year:2024, race:"Русе"},
+
+  {category:"12h", gender:"f", name:"Гергана Малчева", result:"123.20", year:2024, race:"Русе", url:"https://statistik.d-u-v.org/getresultevent.php?event=130648"},
+  {category:"12h", gender:"f", name:"Валентина Тодорова", result:"116.09", year:2024, race:"Русе"},
+  {category:"12h", gender:"f", name:"Лиля Тодорова", result:"115.21", year:2023, race:"Русе"},
+  {category:"12h", gender:"f", name:"Милена Каптебилова", result:"112.74", year:2026, race:"Серес"},
+  {category:"12h", gender:"f", name:"Михаела Енгларо", result:"111.53", year:2021, race:"Загреб"},
+  {category:"12h", gender:"f", name:"Нели Ангелова", result:"108.89", year:2019, race:"София"},
+  {category:"12h", gender:"f", name:"Радостина Колева", result:"108.04", year:2025, race:"София"},
+  {category:"12h", gender:"f", name:"Боряна Цветкова", result:"107.08", year:2022, race:"София"},
+  {category:"12h", gender:"f", name:"Миглена Петкова", result:"106.30", year:2019, race:"София"},
+  {category:"12h", gender:"f", name:"Веселина Иванова", result:"105.49", year:2025, race:"София"},
+  {category:"12h", gender:"f", name:"Гергана Станилова", result:"105.27", year:2022, race:"Барселона"},
+  {category:"12h", gender:"f", name:"Боряна Попова", result:"103.77", year:2021, race:"София"},
+
+  // ── 24 ЧАСА ──────────────────────────────────────────
+  {category:"24h", gender:"m", name:"Антон Кадиев", result:"255.64", year:2025, race:"Русе", url:"https://statistik.d-u-v.org/getresultevent.php?event=115125"},
+  {category:"24h", gender:"m", name:"Владимир Ставрев", result:"253.10", year:2019, race:"Кладно"},
+  {category:"24h", gender:"m", name:"Христо Цветков", result:"246.30", year:2019, race:"Кладно"},
+  {category:"24h", gender:"m", name:"Емил Генов", result:"240.43", year:2021, race:"Биела"},
+  {category:"24h", gender:"m", name:"Благой Солаков", result:"228.30", year:2023, race:"Тимишоара"},
+  {category:"24h", gender:"m", name:"Деян Петков", result:"226.64", year:2020, race:"Бусоленго"},
+  {category:"24h", gender:"m", name:"Йордан Стойков", result:"217.72", year:2023, race:"Лутраки"},
+  {category:"24h", gender:"m", name:"Фатих Хюсеинов", result:"215.29", year:2024, race:"Русе"},
+  {category:"24h", gender:"m", name:"Антоний Кунчев", result:"215.04", year:2019, race:"Кладно"},
+  {category:"24h", gender:"m", name:"Вихрен Иванов", result:"213.00", year:2019, race:"Кладно"},
+  {category:"24h", gender:"m", name:"Благой Солаков", result:"212.85", year:2021, race:"Барселона"},
+  {category:"24h", gender:"m", name:"Цвятко Ябанджиев", result:"* 211.00", year:1989, race:"Бобов Дол"},
+  {category:"24h", gender:"m", name:"Красимир Димитров", result:"198.18", year:2024, race:"Спарта"},
+  {category:"24h", gender:"m", name:"Ясен Кирилов", result:"196.63", year:2025, race:"Русе"},
+  {category:"24h", gender:"m", name:"Станислав Станчев", result:"196.45", year:2026, race:"Русе"},
+  {category:"24h", gender:"m", name:"Тодор Димитров", result:"196.00", year:2018, race:"Белград"},
+  {category:"24h", gender:"m", name:"Димитър Димитров", result:"194.02", year:2020, race:"Атина"},
+  {category:"24h", gender:"m", name:"Живко Желязков", result:"192.56", year:2024, race:"Русе"},
+  {category:"24h", gender:"m", name:"Миран Хачатрян", result:"188.41", year:2024, race:"Русе"},
+  {category:"24h", gender:"m", name:"Николай Петков", result:"183.88", year:2025, race:"Русе"},
+  {category:"24h", gender:"m", name:"Ради Милев", result:"181.61", year:2016, race:"Осло"},
+
+  {category:"24h", gender:"f", name:"Гергана Малчева", result:"205.20", year:2024, race:"Русе", url:"https://statistik.d-u-v.org/getresultevent.php?event=128241"},
+  {category:"24h", gender:"f", name:"Михаела Енгларо", result:"201.51", year:2021, race:"Барселона"},
+  {category:"24h", gender:"f", name:"Гергана Станилова", result:"190.94", year:2022, race:"Барселона"},
+  {category:"24h", gender:"f", name:"Милена Каптебилова", result:"186.67", year:2026, race:"Серес"},
+  {category:"24h", gender:"f", name:"Радост Колева", result:"172.80", year:2025, race:"Лутраки"},
+  {category:"24h", gender:"f", name:"Валентина Тодорова", result:"164.26", year:2025, race:"Русе"},
+
+  // ── МАРАТОН ──────────────────────────────────────────
+  {category:"marathon", gender:"m", name:"Йоло Николов", result:"02:19:31", year:2013, race:"Подгорица"},
+  {category:"marathon", gender:"m", name:"Мирослав Спасов", result:"02:20:19", year:2024, race:"Берлин"},
+  {category:"marathon", gender:"m", name:"Боян Иванджиков", result:"02:20:50", year:2026, race:"Барселона"},
+  {category:"marathon", gender:"m", name:"Шабан Мустафа", result:"02:24:39", year:2009, race:"Подгорица"},
+  {category:"marathon", gender:"m", name:"Станислав Ламбев", result:"02:26:21", year:2008, race:"София"},
+  {category:"marathon", gender:"m", name:"Илия Куцаров", result:"02:26:38", year:2019, race:"Ухан"},
+  {category:"marathon", gender:"m", name:"Димчо Мицов", result:"02:26:42", year:2017, race:"София"},
+  {category:"marathon", gender:"m", name:"Николай Николов", result:"02:26:57", year:2025, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Александър Василев", result:"02:30:11", year:2025, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Кольо Райчинов", result:"02:31:21", year:2025, race:"Скопие"},
+  {category:"marathon", gender:"m", name:"Росен Лилов", result:"02:32:07", year:2017, race:"Айндховен"},
+  {category:"marathon", gender:"m", name:"Димитър Шадура", result:"02:32:36", year:2024, race:"Малага"},
+  {category:"marathon", gender:"m", name:"Христо Цветков", result:"02:32:49", year:2025, race:"Спринг 360 *"},
+  {category:"marathon", gender:"m", name:"Владислав Михайлов", result:"02:33:44", year:2023, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Аркадий Шеврикуко", result:"02:34:02", year:2023, race:"Берлин"},
+  {category:"marathon", gender:"m", name:"Мартин Аргиров", result:"02:34:06", year:2025, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Ивайло Вълев", result:"02:34:08", year:2022, race:"Кюстендил"},
+  {category:"marathon", gender:"m", name:"Александър Спасов", result:"02:34:28", year:2018, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Стефан Йорданов", result:"02:34:31", year:2024, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Никола Кондарев", result:"02:35:00", year:2025, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Методи Георгиев", result:"02:35:51", year:2024, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Пламен Пенов", result:"02:35:56", year:2025, race:"Ларнака"},
+  {category:"marathon", gender:"m", name:"Ивайло Атанасов", result:"02:36:00", year:2024, race:"Ротердам"},
+  {category:"marathon", gender:"m", name:"Митко Ценов", result:"02:36:01", year:2025, race:"Скопие"},
+  {category:"marathon", gender:"m", name:"Владимир Кръстев", result:"02:36:18", year:2023, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Николай Стойчев", result:"02:36:47", year:2025, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Ганчо Славов", result:"02:37:00", year:2016, race:"София"},
+  {category:"marathon", gender:"m", name:"Александър Христов", result:"02:37:45", year:2025, race:"Малага"},
+  {category:"marathon", gender:"m", name:"Александър Божилов", result:"02:38:20", year:2024, race:"Далас"},
+  {category:"marathon", gender:"m", name:"Кристиан Кирилов", result:"02:38:45", year:2019, race:"Валенсия"},
+  {category:"marathon", gender:"m", name:"Даниел Кубашлиев", result:"02:39:39", year:2023, race:"Флоренция"},
+
+  {category:"marathon", gender:"f", name:"Милица Мирчева", result:"02:29:23", year:2022, race:"Копенхаген"},
+  {category:"marathon", gender:"f", name:"Маринела Нинева", result:"02:37:31", year:2024, race:"Мерсин"},
+  {category:"marathon", gender:"f", name:"Радосвета Симеонова", result:"02:46:10", year:2017, race:"София"},
+  {category:"marathon", gender:"f", name:"Христина Козарева", result:"02:46:24", year:2021, race:"Варна"},
+  {category:"marathon", gender:"f", name:"Добринка Шаламанова", result:"02:48:22", year:2007, race:"София"},
+  {category:"marathon", gender:"f", name:"Полина Господинова", result:"02:51:54", year:2026, race:"Милано"},
+  {category:"marathon", gender:"f", name:"Таня Димитрова", result:"02:52:16", year:2024, race:"Букурещ"},
+  {category:"marathon", gender:"f", name:"Силвия Дънекова", result:"02:52:27", year:2013, race:"София"},
+  {category:"marathon", gender:"f", name:"Мария Николова", result:"02:53:05", year:2024, race:"Берлин"},
+  {category:"marathon", gender:"f", name:"Антония Георгиева", result:"02:54:08", year:2023, race:"Валенсия"},
+  {category:"marathon", gender:"f", name:"Радостина Балова", result:"02:54:33", year:2025, race:"Скопие"},
+  {category:"marathon", gender:"f", name:"Надежда Ангелова", result:"02:55:45", year:2024, race:"София"},
+  {category:"marathon", gender:"f", name:"Силвия Георгиева", result:"02:55:57", year:2025, race:"София"},
+  {category:"marathon", gender:"f", name:"Емел Махмуд", result:"02:57:15", year:2026, race:"Рим"},
+  {category:"marathon", gender:"f", name:"Теодора Делчева", result:"02:59:33", year:2025, race:"Бостън"},
+
+  // ── ПОЛУМАРАТОН ──────────────────────────────────────────
+  {category:"half", gender:"m", name:"Иво Балабанов", result:"01:06:13", year:2018, race:"София"},
+  {category:"half", gender:"m", name:"Стефан Йорданов", result:"01:07:20", year:2026, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Боян Иванджиков", result:"01:07:22", year:2024, race:"Валенсия"},
+  {category:"half", gender:"m", name:"Митко Ценов", result:"01:07:23", year:2019, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Йоло Николов", result:"01:07:24", year:2021, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Стоян Владков", result:"01:07:33", year:2025, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Мирослав Спасов", result:"01:08:10", year:2025, race:"Хага"},
+  {category:"half", gender:"m", name:"Николай Кауфман", result:"01:09:14", year:2024, race:"София"},
+  {category:"half", gender:"m", name:"Шабан Мустафа", result:"01:09:25", year:2017, race:"Прищина"},
+  {category:"half", gender:"m", name:"Александър Божилов", result:"01:10:08", year:2024, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Сава Тодоров", result:"01:10:16", year:2019, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Димчо Мицов", result:"01:10:26", year:2017, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Валентин Паскалев", result:"01:10:38", year:2016, race:"Плевен"},
+  {category:"half", gender:"m", name:"Николай Първанов", result:"01:10:48", year:2022, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Илия Куцаров", result:"01:10:51", year:2019, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Ивайло Вълев", result:"01:10:56", year:2022, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Владислав Михайлов", result:"01:11:06", year:2023, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Георги Гергов", result:"01:11:07", year:2021, race:"Кюстендил"},
+  {category:"half", gender:"m", name:"Йордан Велков", result:"01:11:10", year:2024, race:"Стара Загора"},
+  {category:"half", gender:"m", name:"Атанас Куцаров", result:"01:11:13", year:2022, race:"Кюстендил"},
+  {category:"half", gender:"m", name:"Деян Атанасов", result:"01:11:22", year:2016, race:"София"},
+  {category:"half", gender:"m", name:"Кольо Райчинов", result:"01:11:31", year:2024, race:"Валенсия"},
+  {category:"half", gender:"m", name:"Николай Начев", result:"01:11:37", year:2024, race:"Стара Загора"},
+
+  {category:"half", gender:"f", name:"Милица Мирчева", result:"01:11:14", year:2019, race:"Валенсия"},
+  {category:"half", gender:"f", name:"Девора Аврамова", result:"01:12:52", year:2025, race:"Белград"},
+  {category:"half", gender:"f", name:"Маринела Нинева", result:"01:14:00", year:2024, race:"Стара Загора"},
+  {category:"half", gender:"f", name:"Симона Неделчева", result:"01:18:19", year:2020, race:"София"},
+  {category:"half", gender:"f", name:"Антония Георгиева", result:"01:20:13", year:2024, race:"Валенсия"},
+  {category:"half", gender:"f", name:"Билсерин Сюлейман", result:"01:20:37", year:2023, race:"Стара Загора"},
+  {category:"half", gender:"f", name:"Радосвета Симеонова", result:"01:20:47", year:2017, race:"Плевен"},
+  {category:"half", gender:"f", name:"Диляна Минкина", result:"01:20:55", year:2018, race:"Каварна"},
+  {category:"half", gender:"f", name:"Моника Филипова", result:"01:22:28", year:2022, race:"София"},
+  {category:"half", gender:"f", name:"Силвия Дънекова", result:"01:23:34", year:2016, race:"Плевен"},
+  {category:"half", gender:"f", name:"Силвия Георгиева", result:"01:23:36", year:2024, race:"София"},
+  {category:"half", gender:"f", name:"Мария Николова", result:"01:23:51", year:2024, race:"София"},
+  {category:"half", gender:"f", name:"Даниела Йорданова", result:"01:23:55", year:2016, race:"Софи"},
+  {category:"half", gender:"f", name:"Кристина Иванова", result:"01:23:59", year:2019, race:"София"},
+  {category:"half", gender:"f", name:"Таня Стоянова", result:"01:24:02", year:2021, race:"Стара Загора"},
+  {category:"half", gender:"f", name:"Ивелина Маджарова", result:"01:24:35", year:2023, race:"Букурещ"},
+  {category:"half", gender:"f", name:"Христина Козарева", result:"01:24:45", year:2017, race:"Стара Загора"},
+
+  // ── 99 КМ ──────────────────────────────────
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"6:56:40", year:2025},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:39:54", year:2023},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:45:34", year:2022},
+  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"7:45:40", year:2025},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:52:01", year:2024},
+  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"8:04:52", year:2024},
+  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"8:05:55", year:2024},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"8:07:23", year:2021},
+  {category:"vitosha", gender:"m", name:"Александър Спасов", result:"8:12:06", year:2018},
+  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:18:20", year:2020},
+  {category:"vitosha", gender:"m", name:"Николай Стойчев", result:"8:23:58", year:2025},
+  {category:"vitosha", gender:"m", name:"Александър Христов", result:"8:28:09", year:2024},
+  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:29:35", year:2023},
+  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:30:17", year:2018},
+  {category:"vitosha", gender:"m", name:"Даниел Кубашлиев", result:"8:33:11", year:2023},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"8:34:05", year:2019},
+  {category:"vitosha", gender:"m", name:"Антон Кадиев", result:"8:35:08", year:2025},
+  {category:"vitosha", gender:"m", name:"Атанас Парашкевов", result:"8:37:39", year:2025},
+  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"8:38:02", year:2024},
+  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"8:38:27", year:2022},
+  {category:"vitosha", gender:"m", name:"Христо Минков", result:"8:39:07", year:2025},
+  {category:"vitosha", gender:"m", name:"Владимир Ставрев", result:"8:42:04", year:2019},
+  {category:"vitosha", gender:"m", name:"Андриан Кърпаров", result:"8:42:58", year:2025},
+  {category:"vitosha", gender:"m", name:"Андрей Гридин", result:"8:43:21", year:2017},
+  {category:"vitosha", gender:"m", name:"Тодор Цанков", result:"8:43:46", year:2018},
+  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:48:04", year:2017},
+  {category:"vitosha", gender:"m", name:"Никола Кондарев", result:"8:51:06", year:2025},
+  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"8:53:31", year:2023},
+  {category:"vitosha", gender:"m", name:"Любомир Тодоров", result:"8:54:48", year:2018},
+  {category:"vitosha", gender:"m", name:"Георги Добрев", result:"8:55:38", year:2025},
+  {category:"vitosha", gender:"m", name:"Любомир Тодоров", result:"8:55:51", year:2019},
+  {category:"vitosha", gender:"m", name:"Даниел Кубашлиев", result:"8:55:57", year:2022},
+  {category:"vitosha", gender:"m", name:"Александър Спасов", result:"8:56:22", year:2021},
+  {category:"vitosha", gender:"m", name:"Росен Русев", result:"8:57:07", year:2019},
+  {category:"vitosha", gender:"m", name:"Андриан Кърпаров", result:"8:57:19", year:2024},
+  {category:"vitosha", gender:"m", name:"Калоян Чанев", result:"8:58:10", year:2022},
+  {category:"vitosha", gender:"m", name:"Стефан Иванов", result:"8:58:59", year:2020},
+  {category:"vitosha", gender:"m", name:"Иво Андреев", result:"9:04:40", year:2025},
+  {category:"vitosha", gender:"m", name:"Julien Feutrie", result:"9:05:24", year:2024},
+  {category:"vitosha", gender:"m", name:"Тодор Георгиев", result:"9:05:49", year:2020},
+  {category:"vitosha", gender:"m", name:"Иво Андреев", result:"9:07:00", year:2024},
+  {category:"vitosha", gender:"m", name:"Петко Стефанов", result:"9:07:02", year:2023},
+  {category:"vitosha", gender:"m", name:"Фатих Хюсеин", result:"9:08:48", year:2025},
+  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"9:11:17", year:2018},
+  {category:"vitosha", gender:"m", name:"Христо Минков", result:"9:11:35", year:2021},
+  {category:"vitosha", gender:"m", name:"Росен Русев", result:"9:13:18", year:2021},
+  {category:"vitosha", gender:"m", name:"Самуил Вълчев", result:"9:13:57", year:2023},
+  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:14:03", year:2017},
+  {category:"vitosha", gender:"m", name:"Станимир Димитров", result:"9:14:54", year:2020},
+  {category:"vitosha", gender:"m", name:"Емил Недков", result:"9:15:44", year:2025},
+  {category:"vitosha", gender:"m", name:"Христо Минков", result:"9:15:51", year:2023},
+  {category:"vitosha", gender:"m", name:"Станимир Димитров", result:"9:15:59", year:2018},
+  {category:"vitosha", gender:"m", name:"Румен Костадинов", result:"9:16:32", year:2024},
+  {category:"vitosha", gender:"m", name:"Julien Feutrie", result:"9:17:37", year:2025},
+  {category:"vitosha", gender:"m", name:"Димитър Цанков", result:"9:18:01", year:2023},
+  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"9:18:40", year:2022},
+  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"9:21:19", year:2023},
+  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:21:31", year:2020},
+  {category:"vitosha", gender:"m", name:"Кольо Райчинов", result:"9:21:40", year:2019},
+  {category:"vitosha", gender:"m", name:"Кристиян Кирилов", result:"9:22:15", year:2019},
+  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"9:22:36", year:2021},
+  {category:"vitosha", gender:"m", name:"Никола Стойчев", result:"9:22:46", year:2025},
+  {category:"vitosha", gender:"m", name:"Васил Гуджев", result:"9:23:04", year:2025},
+  {category:"vitosha", gender:"m", name:"Виктор Методиев", result:"9:25:43", year:2024},
+  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:26:11", year:2019},
+  {category:"vitosha", gender:"m", name:"Константин Атанасов", result:"9:27:23", year:2020},
+  {category:"vitosha", gender:"m", name:"Калоян Чанев", result:"9:27:35", year:2024},
+  {category:"vitosha", gender:"m", name:"Иван Гочев", result:"9:28:52", year:2018},
+  {category:"vitosha", gender:"m", name:"Кольо Райчинов", result:"9:29:04", year:2021},
+
+  {category:"vitosha", gender:"f", name:"Мария Николова", result:"8:56:39", year:2024},
+  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"8:57:10", year:2024},
+  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"8:57:35", year:2024},
+  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:13:21", year:2025},
+  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:17:32", year:2020},
+  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:19:35", year:2022},
+  {category:"vitosha", gender:"f", name:"Полина Горасова", result:"9:19:39", year:2025},
+  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:24:22", year:2022},
+  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:32:22", year:2023},
+  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:37:40", year:2021},
+  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:37:44", year:2018},
+  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:39:08", year:2020},
+  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:41:15", year:2019},
+  {category:"vitosha", gender:"f", name:"Полина Горасова", result:"9:49:10", year:2024},
+  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:49:13", year:2017},
+  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"10:00:15", year:2018},
+  {category:"vitosha", gender:"f", name:"Антония Георгиева", result:"10:02:48", year:2024},
+  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"10:19:14", year:2019},
+  {category:"vitosha", gender:"f", name:"Нели Петкова", result:"10:28:53", year:2025},
+
+  // ── Vitosha (old) ──────────────────────────────────
+  {category:"vitosha-old", gender:"m", name:"Кирил Николов", result:"7:39:40", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Андрей Гридин", result:"8:06:29", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Gancho Slavov", result:"8:19:54", year:2013},
+  {category:"vitosha-old", gender:"m", name:"Ивайло Атанасов", result:"8:24:52", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Ruslan Palazov", result:"8:29:03", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Ивайло Хаджиев", result:"8:32:57", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Simeon Nachev", result:"8:43:34", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Gancho Slavov", result:"8:44:00", year:2012},
+  {category:"vitosha-old", gender:"m", name:"Atanas Kateliev", result:"8:45:26", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Константин Атанасов", result:"8:48:56", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Milen Balabanov", result:"8:49:41", year:2013},
+  {category:"vitosha-old", gender:"m", name:"Aleksandar Dimov", result:"8:50:28", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Plamen Cukev", result:"8:50:47", year:2013},
+  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"8:55:57", year:2013},
+  {category:"vitosha-old", gender:"m", name:"Iliya Kutsarov", result:"8:57:20", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Milen Balabanov", result:"8:59:23", year:2014},
+  {category:"vitosha-old", gender:"m", name:"Slavi Asenov", result:"8:59:38", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Martin Kiritsov", result:"9:00:39", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Dimitar Davidov", result:"9:02:00", year:2012},
+  {category:"vitosha-old", gender:"m", name:"Boyan Rashev", result:"9:08:10", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Kalin Vasilev", result:"9:08:20", year:2015},
+  {category:"vitosha-old", gender:"m", name:"Zlatko Kamenarov", result:"9:13:01", year:2014},
+  {category:"vitosha-old", gender:"m", name:"Valentin Kirov", result:"9:13:55", year:2014},
+  {category:"vitosha-old", gender:"m", name:"Plamen Ivanov", result:"9:15:09", year:2013},
+  {category:"vitosha-old", gender:"m", name:"Plamen Tsukev", result:"9:22:00", year:2012},
+  {category:"vitosha-old", gender:"m", name:"Iliya Kutsarov", result:"9:23:00", year:2012},
+  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"9:24:00", year:2012},
+  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"9:24:09", year:2014},
+  {category:"vitosha-old", gender:"m", name:"Velislav Jordanov", result:"9:25:35", year:2016},
+  {category:"vitosha-old", gender:"m", name:"Toni Petkov", result:"9:27:44", year:2013},
+
+  {category:"vitosha-old", gender:"f", name:"Моника Филипова", result:"9:09:51", year:2015},
+  {category:"vitosha-old", gender:"f", name:"Мария Николова", result:"9:24:42", year:2015},
+  {category:"vitosha-old", gender:"f", name:"Nina Encheva", result:"9:25:20", year:2015},
+  {category:"vitosha-old", gender:"f", name:"Antonia Grigorova", result:"9:25:56", year:2016},
+];
+
+  // ── Vitosha (old) ──────────────────────────────────
+const IRONMAN_ENTRIES = [
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:51:55", bike:"4:41:52", run:"3:20:31", transitions:"0:08:24", total:"9:02:42", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:52:31", bike:"4:44:50", run:"3:21:30", transitions:"0:06:11", total:"9:05:02", event:"Barcelona", year:2023 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"30-34", swim:"0:58:35", bike:"4:51:13", run:"3:29:36", transitions:"0:04:15", total:"9:23:40", event:"*Ican Gandia", year:2024 },
+  { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"0:59:20", bike:"4:54:25", run:"3:20:55", transitions:"0:12:31", total:"9:27:10", event:"Italy", year:2024 },
+  { firstName:"Hristo", lastName:"Tsvetkov", gender:"m", ageGroup:"25-29", swim:"1:18:44", bike:"4:52:47", run:"3:10:29", transitions:"0:05:58", total:"9:27:58", event:"Barcelona", year:2023 },
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:49:29", bike:"4:54:44", run:"3:38:32", transitions:"0:06:59", total:"9:29:42", event:"Brazil", year:2023 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:00:04", bike:"5:08:23", run:"3:24:50", transitions:"0:08:49", total:"9:42:06", event:"Frankfurt", year:2021 },
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:49:14", bike:"5:10:59", run:"3:43:37", transitions:"0:08:13", total:"9:52:03", event:"Mallorca", year:2021 },
+  { firstName:"Strahil", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:14:23", bike:"5:05:28", run:"3:21:55", transitions:"0:13:13", total:"9:54:59", event:"Italy", year:2024 },
+  { firstName:"Nikolay", lastName:"Voutchkov", gender:"m", ageGroup:"40-44", swim:"1:16:35", bike:"5:05:30", run:"3:23:35", transitions:"0:10:48", total:"9:56:28", event:"Barcelona", year:2016 },
+  { firstName:"Kaloyan", lastName:"Iliev", gender:"m", ageGroup:"35-39", swim:"1:06:58", bike:"5:17:24", run:"3:23:23", transitions:"0:09:13", total:"9:56:58", event:"Frankfurt", year:2022 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"30-34", swim:"0:59:30", bike:"5:16:47", run:"3:29:42", transitions:"0:11:33", total:"9:57:32", event:"Italy", year:2022 },
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:50:02", bike:"5:20:37", run:"3:46:05", transitions:"0:08:25", total:"10:05:09", event:"Frankfurt", year:2022 },
+  { firstName:"Sergey", lastName:"Raykov", gender:"m", ageGroup:"40-44", swim:"(0:29:50) *", bike:"5:21:56", run:"4:04:24", transitions:"0:09:06", total:"10:05:16", event:"Hamburg", year:2018 },
+  { firstName:"Petar", lastName:"Mladenov", gender:"m", ageGroup:"35-39", swim:"1:17:28", bike:"5:07:01", run:"3:35:32", transitions:"0:05:33", total:"10:05:33", event:"Barcelona", year:2024 },
+  { firstName:"Stoyan", lastName:"Karastoyanov", gender:"m", ageGroup:"35-39", swim:"1:10:53", bike:"5:35:39", run:"3:10:35", transitions:"0:14:01", total:"10:11:08", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:51:23", bike:"4:51:29", run:"4:21:39", transitions:"0:07:51", total:"10:12:22", event:"Barcelona", year:2022 },
+  { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"0:59:50", bike:"4:53:18", run:"4:13:07", transitions:"0:14:14", total:"10:20:29", event:"Hamburg", year:2024 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"30-34", swim:"1:16:05", bike:"5:01:26", run:"3:59:29", transitions:"0:10:15", total:"10:27:15", event:"Florida", year:2003 },
+  { firstName:"Vladimir", lastName:"Tabutov", gender:"m", ageGroup:"40-44", swim:"1:11:15", bike:"5:08:40", run:"3:56:15", transitions:"0:14:32", total:"10:30:41", event:"Barcelona", year:2024 },
+  { firstName:"Dimitar", lastName:"Karabahchiev", gender:"m", ageGroup:"45-49", swim:"1:12:38", bike:"4:58:56", run:"4:05:39", transitions:"0:13:34", total:"10:30:47", event:"Italy", year:2024 },
+  { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"1:02:08", bike:"5:00:00", run:"4:15:29", transitions:"0:16:59", total:"10:34:36", event:"Italy", year:2022 },
+  { firstName:"Dimitar", lastName:"Karabahchiev", gender:"m", ageGroup:"45-49", swim:"1:11:02", bike:"5:28:25", run:"3:40:44", transitions:"0:18:20", total:"10:38:31", event:"Portugal", year:2022 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:03:01", bike:"5:21:58", run:"4:02:35", transitions:"0:11:28", total:"10:39:02", event:"Copenhagen", year:2019 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"40-44", swim:"1:18:29", bike:"5:23:07", run:"3:46:38", transitions:"0:14:45", total:"10:42:59", event:"Arizona", year:2009 },
+  { firstName:"Dimitar", lastName:"Karabahchiev", gender:"m", ageGroup:"40-44", swim:"1:14:09", bike:"5:23:53", run:"3:52:39", transitions:"0:12:28", total:"10:43:09", event:"Barcelona", year:2019 },
+  { firstName:"Plamen", lastName:"Kalchev", gender:"m", ageGroup:"35-39", swim:"1:24:12", bike:"5:22:53", run:"3:47:17", transitions:"0:11:28", total:"10:45:50", event:"Hamburg", year:2024 },
+  { firstName:"Roumen", lastName:"Ignatov", gender:"m", ageGroup:"45-49", swim:"1:11:39", bike:"4:59:23", run:"4:21:55", transitions:"0:13:50", total:"10:46:47", event:"Italy", year:2022 },
+  { firstName:"Tsvetoslav", lastName:"Angelov", gender:"m", ageGroup:"40-44", swim:"1:06:08", bike:"5:11:03", run:"4:20:42", transitions:"0:15:04", total:"10:52:57", event:"Italy", year:2024 },
+  { firstName:"Thomas", lastName:"Piou", gender:"m", ageGroup:"50-54", swim:"1:05:32", bike:"5:14:47", run:"4:18:38", transitions:"0:15:22", total:"10:54:18", event:"Italy", year:2024 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"35-39", swim:"1:23:07", bike:"5:06:03", run:"4:04:38", transitions:"0:20:35", total:"10:54:23", event:"Florida", year:2019 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"30-35", swim:"1:27:00", bike:"5:24:17", run:"4:03:22", transitions:"(-) *", total:"10:54:38", event:"Brazil", year:2004 },
+  { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"0:57:50", bike:"4:58:29", run:"4:48:21", transitions:"0:10:55", total:"10:55:35", event:"Italy", year:2023 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:06:10", bike:"5:30:03", run:"4:12:01", transitions:"0:08:52", total:"10:57:06", event:"Kona", year:2022 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"35-39", swim:"1:23:35", bike:"5:07:34", run:"4:12:23", transitions:"0:19:27", total:"11:02:59", event:"Arizona", year:2019 },
+  { firstName:"Veselin", lastName:"Danchev", gender:"m", ageGroup:"45-49", swim:"1:24:20", bike:"5:23:25", run:"4:02:58", transitions:"0:13:57", total:"11:04:40", event:"Italy", year:2024 },
+  { firstName:"Alexander", lastName:"Lilov", gender:"m", ageGroup:"18-24", swim:"(0:07:54)*", bike:"5:39:49", run:"5:10:34", transitions:"0:21:07", total:"11:11:30", event:"Barcelona", year:2021 },
+  { firstName:"Veselin", lastName:"Danchev", gender:"m", ageGroup:"45-49", swim:"1:27:07", bike:"5:22:57", run:"3:58:16", transitions:"0:24:25", total:"11:12:45", event:"Barcelona", year:2023 },
+  { firstName:"Stilian", lastName:"Stoyanov", gender:"m", ageGroup:"50-54", swim:"1:27:26", bike:"5:30:57", run:"3:56:46", transitions:"0:18:52", total:"11:14:01", event:"Italy", year:2024 },
+  { firstName:"Sergey", lastName:"Raykov", gender:"m", ageGroup:"45-49", swim:"0:55:52", bike:"5:54:29", run:"4:17:48", transitions:"0:07:23", total:"11:15:32", event:"Switzerland", year:2019 },
+  { firstName:"Galin", lastName:"Angelov", gender:"m", ageGroup:"45-49", swim:"1:05:39", bike:"5:11:23", run:"4:44:20", transitions:"0:14:30", total:"11:15:51", event:"Italy", year:2024 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"35-39", swim:"1:27:18", bike:"4:53:45", run:"4:40:20", transitions:"0:16:29", total:"11:17:52", event:"Maryland", year:2019 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"40-44", swim:"1:29:55", bike:"5:47:42", run:"3:49:56", transitions:"0:12:25", total:"11:19:58", event:"Frankfurt", year:2010 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:27:48", bike:"5:14:04", run:"4:26:01", transitions:"0:14:51", total:"11:22:44", event:"Maryland", year:2022 },
+  { firstName:"Boris", lastName:"Sarabeev", gender:"m", ageGroup:"35-39", swim:"1:32:44", bike:"5:19:01", run:"4:02:16", transitions:"0:30:27", total:"11:24:28", event:"Italy", year:2024 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"30-34", swim:"1:11:37", bike:"5:46:18", run:"4:29:43", transitions:"(-) *", total:"11:27:39", event:"Brazil", year:2006 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:25:44", bike:"5:21:53", run:"4:22:25", transitions:"0:18:07", total:"11:28:09", event:"Florida", year:2020 },
+  { firstName:"Krasimir", lastName:"Kostov", gender:"m", ageGroup:"55-59", swim:"1:22:16", bike:"5:49:51", run:"4:03:11", transitions:"0:13:12", total:"11:28:30", event:"Switzerland", year:2014 },
+  { firstName:"Christo", lastName:"Kabadaev", gender:"m", ageGroup:"40-44", swim:"(0:21:30)*", bike:"6:36:18", run:"4:13:52", transitions:"0:39:55", total:"11:30:05", event:"Ireland", year:2023 },
+  { firstName:"Momchil", lastName:"Ivanov", gender:"m", ageGroup:"35-39", swim:"1:12:25", bike:"5:34:32", run:"4:34:04", transitions:"0:10:14", total:"11:31:16", event:"Barcelona", year:2024 },
+  { firstName:"Christo", lastName:"Kabadaev", gender:"m", ageGroup:"35-39", swim:"1:19:14", bike:"6:21:03", run:"3:35:45", transitions:"0:16:31", total:"11:32:33", event:"Italy", year:2019 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:28:07", bike:"5:25:41", run:"4:20:46", transitions:"0:18:05", total:"11:32:39", event:"Florida", year:2022 },
+  { firstName:"Denislav", lastName:"Naydenov", gender:"m", ageGroup:"35-39", swim:"1:28:13", bike:"5:33:30", run:"4:16:38", transitions:"0:15:52", total:"11:34:13", event:"Italy", year:2024 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"35-39", swim:"1:21:25", bike:"5:48:18", run:"4:13:56", transitions:"0:10:45", total:"11:34:24", event:"Switzerland", year:2008 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"40-44", swim:"1:12:12", bike:"5:58:42", run:"4:15:58", transitions:"0:12:18", total:"11:39:10", event:"Sweden", year:2014 },
+  { firstName:"Hristo", lastName:"Tzigarov", gender:"m", ageGroup:"40-44", swim:"1:14:55", bike:"5:53:02", run:"4:11:14", transitions:"0:21:06", total:"11:40:17", event:"Frankfurt", year:2023 },
+  { firstName:"Martin", lastName:"Varbov", gender:"m", ageGroup:"30-34", swim:"1:16:10", bike:"5:56:28", run:"4:10:11", transitions:"0:20:02", total:"11:42:51", event:"Italy", year:2022 },
+  { firstName:"Miroslav", lastName:"Zaporozhanov", gender:"m", ageGroup:"35-39", swim:"1:11:14", bike:"5:44:52", run:"4:23:56", transitions:"0:23:48", total:"11:43:50", event:"Italy", year:2024 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"40-44", swim:"1:16:28", bike:"6:06:20", run:"4:10:23", transitions:"0:10:53", total:"11:44:04", event:"China", year:2010 },
+  { firstName:"Kiril", lastName:"Penchev", gender:"m", ageGroup:"35-39", swim:"1:04:59", bike:"5:54:26", run:"4:19:16", transitions:"0:25:42", total:"11:44:23", event:"Italy", year:2024 },
+  { firstName:"Vilian", lastName:"Dyankov", gender:"m", ageGroup:"18-24", swim:"1:44:49", bike:"5:47:28", run:"3:58:00", transitions:"0:14:26", total:"11:44:43", event:"Barcelona", year:2024 },
+  { firstName:"Slavi", lastName:"Kostov", gender:"m", ageGroup:"45-49", swim:"1:19:56", bike:"5:47:32", run:"4:21:58", transitions:"0:16:24", total:"11:45:50", event:"Italy", year:2024 },
+  { firstName:"Stefan", lastName:"Ivanov", gender:"m", ageGroup:"45-49", swim:"1:14:12", bike:"5:51:57", run:"4:29:33", transitions:"0:10:13", total:"11:45:55", event:"Copenhagen", year:2018 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:27:10", bike:"5:20:34", run:"4:38:15", transitions:"0:20:20", total:"11:46:19", event:"Maryland", year:2021 },
+  { firstName:"Christofor", lastName:"Baramov", gender:"m", ageGroup:"45-49", swim:"1:23:41", bike:"5:50:53", run:"4:11:43", transitions:"0:21:19", total:"11:47:35", event:"Italy", year:2024 },
+  { firstName:"Mihail", lastName:"Stepanov", gender:"m", ageGroup:"45-49", swim:"1:16:42", bike:"5:47:15", run:"4:29:59", transitions:"0:14:11", total:"11:48:07", event:"Italy", year:2021 },
+  { firstName:"Filip", lastName:"Kiriazov", gender:"m", ageGroup:"25-29", swim:"1:31:40", bike:"6:08:41", run:"3:56:59", transitions:"0:12:03", total:"11:49:23", event:"Copenhagen", year:2018 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"40-44", swim:"1:14:41", bike:"6:00:51", run:"4:24:41", transitions:"0:11:46", total:"11:51:59", event:"Canada", year:2013 },
+  { firstName:"Slavi", lastName:"Kostov", gender:"m", ageGroup:"40-44", swim:"1:13:26", bike:"5:51:10", run:"4:33:01", transitions:"0:14:44", total:"11:52:21", event:"Barcelona", year:2019 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"35-39", swim:"1:23:56", bike:"5:25:45", run:"4:40:52", transitions:"0:24:27", total:"11:55:00", event:"Arizona", year:2018 },
+  { firstName:"Krasimir", lastName:"Kostov", gender:"m", ageGroup:"50-54", swim:"1:13:36", bike:"5:19:38", run:"5:03:13", transitions:"0:18:40", total:"11:55:07", event:"Sweden", year:2012 },
+  { firstName:"Martin", lastName:"Peshev", gender:"m", ageGroup:"25-29", swim:"1:00:18", bike:"6:25:35", run:"4:12:53", transitions:"0:17:10", total:"11:55:56", event:"Mallorca", year:2014 },
+  { firstName:"Tsvetoslav", lastName:"Angelov", gender:"m", ageGroup:"40-44", swim:"1:20:58", bike:"5:31:41", run:"4:49:14", transitions:"0:14:57", total:"11:56:50", event:"Barcelona", year:2023 },
+  { firstName:"Antoni", lastName:"Dimitrov", gender:"m", ageGroup:"35-39", swim:"1:23:21", bike:"6:01:43", run:"4:14:23", transitions:"0:18:45", total:"11:58:12", event:"Switzerland", year:2018 },
+  { firstName:"Kamen", lastName:"Danailov", gender:"m", ageGroup:"55-59", swim:"1:11:44", bike:"6:12:33", run:"4:22:12", transitions:"0:12:39", total:"11:59:08", event:"Frankfurt", year:2022 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"25-29", swim:"1:27:46", bike:"6:10:23", run:"4:17:00", transitions:"0:05:36", total:"12:00:45", event:"Switzerland", year:2001 },
+  { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:11:43", bike:"6:11:45", run:"4:24:53", transitions:"0:15:24", total:"12:03:45", event:"Hamburg", year:2017 },
+  { firstName:"Kristiyan", lastName:"Haralambiev", gender:"m", ageGroup:"30-34", swim:"1:30:53", bike:"5:58:51", run:"4:24:56", transitions:"0:09:53", total:"12:04:33", event:"Switzerland", year:2013 },
+  { firstName:"Dimitar", lastName:"Poptanev", gender:"m", ageGroup:"35-39", swim:"1:18:44", bike:"6:42:23", run:"3:43:52", transitions:"0:20:32", total:"12:05:31", event:"Lanzarote", year:2008 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:56:22", bike:"5:29:04", run:"4:20:51", transitions:"0:19:15", total:"12:05:32", event:"Florida", year:2021 },
+  { firstName:"Stanimir", lastName:"Statev", gender:"m", ageGroup:"45-49", swim:"1:38:52", bike:"5:49:37", run:"4:19:02", transitions:"0:19:16", total:"12:06:46", event:"Copenhagen", year:2024 },
+  { firstName:"Dimitar", lastName:"Poptanev", gender:"m", ageGroup:"35-39", swim:"1:14:14", bike:"6:34:42", run:"3:59:17", transitions:"0:19:39", total:"12:07:52", event:"Lanzarote", year:2010 },
+  { firstName:"Petko", lastName:"Dichev", gender:"m", ageGroup:"45-49", swim:"1:29:02", bike:"5:53:56", run:"4:25:24", transitions:"0:19:38", total:"12:08:00", event:"Italy", year:2023 },
+  { firstName:"Vassil", lastName:"Barsakov", gender:"m", ageGroup:"50-54", swim:"1:30:36", bike:"6:01:51", run:"4:26:00", transitions:"0:13:01", total:"12:11:28", event:"Frankfurt", year:2023 },
+  { firstName:"Evgeni", lastName:"Vasilkovski", gender:"m", ageGroup:"30-34", swim:"1:30:39", bike:"5:50:25", run:"4:25:19", transitions:"0:25:08", total:"12:11:31", event:"Italy", year:2024 },
+  { firstName:"Iliya", lastName:"Slavchev", gender:"m", ageGroup:"30-34", swim:"1:09:44", bike:"6:28:41", run:"4:19:41", transitions:"0:13:35", total:"12:11:41", event:"Wales", year:2017 },
+  { firstName:"Yavor", lastName:"Gueorguiev", gender:"m", ageGroup:"35-39", swim:"1:28:55", bike:"6:02:15", run:"4:24:29", transitions:"0:16:05", total:"12:11:44", event:"New Zealand", year:2018 },
+  { firstName:"George", lastName:"Bousserski", gender:"m", ageGroup:"35-39", swim:"1:14:12", bike:"6:42:14", run:"4:05:18", transitions:"0:10:05", total:"12:11:49", event:"Canada", year:2015 },
+  { firstName:"Krasimir", lastName:"Stoimenov", gender:"m", ageGroup:"35-39", swim:"1:20:10", bike:"6:20:46", run:"4:20:31", transitions:"0:10:29", total:"12:11:56", event:"Switzerland", year:2021 },
+  { firstName:"Petar", lastName:"Mladenov", gender:"m", ageGroup:"35-39", swim:"1:18:38", bike:"6:23:27", run:"4:21:45", transitions:"0:11:25", total:"12:15:15", event:"Austria", year:2023 },
+  { firstName:"Christian", lastName:"Papasoff", gender:"m", ageGroup:"45-49", swim:"1:29:14", bike:"6:02:40", run:"4:29:15", transitions:"0:14:18", total:"12:15:27", event:"Austria", year:2006 },
+  { firstName:"Vidin", lastName:"Nikolov", gender:"m", ageGroup:"25-29", swim:"1:17:45", bike:"6:41:50", run:"4:04:21", transitions:"0:12:20", total:"12:16:16", event:"Lanzarote", year:2007 },
+  { firstName:"Vidin", lastName:"Nikolov", gender:"m", ageGroup:"40-44", swim:"1:09:46", bike:"6:34:08", run:"4:23:09", transitions:"0:09:32", total:"12:16:35", event:"Lanzarote", year:2021 },
+  { firstName:"Martin", lastName:"Stoyanov", gender:"m", ageGroup:"30-34", swim:"1:26:39", bike:"6:16:37", run:"4:10:27", transitions:"0:23:57", total:"12:17:39", event:"Copenhagen", year:2024 },
+  { firstName:"Stanimir", lastName:"Statev", gender:"m", ageGroup:"40-44", swim:"1:55:51", bike:"5:58:53", run:"4:02:14", transitions:"0:22:03", total:"12:19:01", event:"Barcelona", year:2023 },
+  { firstName:"Alexander", lastName:"Pavlov", gender:"m", ageGroup:"45-49", swim:"1:20:21", bike:"5:13:30", run:"5:21:00", transitions:"0:24:26", total:"12:19:17", event:"Florida", year:2022 },
+  { firstName:"Christo", lastName:"Kabadaev", gender:"m", ageGroup:"40-44", swim:"1:18:54", bike:"6:06:27", run:"4:41:08", transitions:"0:15:44", total:"12:22:13", event:"Barcelona", year:2023 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"35-39", swim:"1:13:14", bike:"6:00:44", run:"4:54:11", transitions:"0:16:38", total:"12:24:47", event:"Mont-Tremblant", year:2013 },
+  { firstName:"Dimitar", lastName:"Poptanev", gender:"m", ageGroup:"30-34", swim:"1:24:29", bike:"6:50:07", run:"3:55:28", transitions:"0:14:54", total:"12:24:58", event:"Lanzarote", year:2007 },
+  { firstName:"Dian", lastName:"Kirov", gender:"m", ageGroup:"30-34", swim:"1:22:31", bike:"6:13:45", run:"4:36:18", transitions:"0:12:36", total:"12:25:10", event:"Hamburg", year:2019 },
+  { firstName:"George", lastName:"Bousserski", gender:"m", ageGroup:"35-39", swim:"1:19:55", bike:"5:56:24", run:"4:59:15", transitions:"0:09:45", total:"12:25:19", event:"Canada", year:2012 },
+  { firstName:"Denislav", lastName:"Naydenov", gender:"m", ageGroup:"30-34", swim:"1:27:32", bike:"5:56:32", run:"4:43:49", transitions:"0:19:31", total:"12:27:24", event:"Italy", year:2023 },
+  { firstName:"Ivelin", lastName:"Dimitrov", gender:"m", ageGroup:"25-29", swim:"1:16:21", bike:"5:56:29", run:"4:55:07", transitions:"0:19:39", total:"12:27:36", event:"Copenhagen", year:2024 },
+  { firstName:"Atanas", lastName:"Vezirev", gender:"m", ageGroup:"55-59", swim:"1:17:56", bike:"5:35:18", run:"5:02:48", transitions:"0:34:19", total:"12:30:22", event:"Italy", year:2024 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:28:16", bike:"5:53:58", run:"4:51:24", transitions:"0:17:13", total:"12:30:51", event:"Arizona", year:2021 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:42:52", bike:"5:49:28", run:"4:42:00", transitions:"0:17:00", total:"12:31:18", event:"Maryland", year:2024 },
+  { firstName:"Veselin", lastName:"Tairski", gender:"m", ageGroup:"30-34", swim:"1:46:34", bike:"6:12:09", run:"4:16:51", transitions:"0:16:36", total:"12:32:10", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Mavrov", gender:"m", ageGroup:"30-34", swim:"1:32:47", bike:"6:11:49", run:"4:18:01", transitions:"0:29:40", total:"12:32:17", event:"Barcelona", year:2022 },
+  { firstName:"Vidin", lastName:"Nikolov", gender:"m", ageGroup:"40-44", swim:"1:07:52", bike:"6:49:02", run:"4:20:32", transitions:"0:15:21", total:"12:32:47", event:"Lanzarote", year:2019 },
+  { firstName:"Dimitar", lastName:"Poptanev", gender:"m", ageGroup:"35-39", swim:"1:18:22", bike:"6:57:53", run:"3:57:05", transitions:"0:19:33", total:"12:32:53", event:"Lanzarote", year:2009 },
+  { firstName:"Desislav", lastName:"Delchev", gender:"m", ageGroup:"35-39", swim:"1:06:26", bike:"7:14:33", run:"3:55:11", transitions:"0:18:13", total:"12:34:23", event:"Lanzarote", year:2023 },
+  { firstName:"Desislav", lastName:"Delchev", gender:"m", ageGroup:"35-39", swim:"1:12:31", bike:"7:05:59", run:"3:56:49", transitions:"0:19:16", total:"12:34:34", event:"Lanzarote", year:2024 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"30-34", swim:"1:19:39", bike:"5:52:41", run:"5:10:56", transitions:"0:13:35", total:"12:36:51", event:"California", year:2001 },
+  { firstName:"Krum", lastName:"Krumov", gender:"m", ageGroup:"35-39", swim:"1:26:59", bike:"6:02:36", run:"4:46:10", transitions:"0:21:27", total:"12:37:12", event:"Hamburg", year:2019 },
+  { firstName:"Hristo", lastName:"Tsvetkov", gender:"m", ageGroup:"18-24", swim:"1:14:45", bike:"6:29:02", run:"4:44:31", transitions:"0:11:09", total:"12:39:27", event:"France", year:2017 },
+  { firstName:"Asen", lastName:"Dapev", gender:"m", ageGroup:"30-34", swim:"1:22:29", bike:"5:52:57", run:"5:00:34", transitions:"0:24:01", total:"12:40:02", event:"Italy", year:2024 },
+  { firstName:"Nikolay", lastName:"Hinov", gender:"m", ageGroup:"30-34", swim:"1:20:54", bike:"6:10:19", run:"4:53:33", transitions:"0:17:54", total:"12:42:40", event:"Copenhagen", year:2024 },
+  { firstName:"Georgi", lastName:"Nedyalkov", gender:"m", ageGroup:"18-24", swim:"1:26:45", bike:"6:32:37", run:"4:15:56", transitions:"0:28:22", total:"12:43:40", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Dimov", gender:"m", ageGroup:"45-49", swim:"1:30:01", bike:"6:22:00", run:"4:31:47", transitions:"0:23:57", total:"12:47:45", event:"Italy", year:2019 },
+  { firstName:"Stanimir", lastName:"Statev", gender:"m", ageGroup:"40-44", swim:"1:51:24", bike:"6:20:46", run:"4:20:15", transitions:"0:15:56", total:"12:48:21", event:"Ireland", year:2022 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"45-49", swim:"1:25:11", bike:"5:59:54", run:"5:03:58", transitions:"0:19:30", total:"12:48:33", event:"Tulsa", year:2021 },
+  { firstName:"Milen", lastName:"Kirilov", gender:"m", ageGroup:"35-39", swim:"1:38:56", bike:"6:18:44", run:"4:34:53", transitions:"0:16:31", total:"12:49:04", event:"Regensburg", year:2011 },
+  { firstName:"Svetlin", lastName:"Mladenov", gender:"m", ageGroup:"35-39", swim:"1:15:39", bike:"6:59:31", run:"4:20:14", transitions:"0:14:49", total:"12:50:13", event:"Poland", year:2022 },
+  { firstName:"Nikolay", lastName:"Titev", gender:"m", ageGroup:"45-49", swim:"1:14:37", bike:"5:45:15", run:"5:32:16", transitions:"0:19:46", total:"12:51:54", event:"Italy", year:2021 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"45-49", swim:"1:44:22", bike:"5:56:48", run:"4:46:31", transitions:"0:24:43", total:"12:52:24", event:"Florida", year:2021 },
+  { firstName:"Stanimir", lastName:"Statev", gender:"m", ageGroup:"40-44", swim:"1:38:39", bike:"6:51:19", run:"4:02:42", transitions:"0:20:29", total:"12:53:09", event:"France", year:2021 },
+  { firstName:"Nikolay", lastName:"Nachev", gender:"m", ageGroup:"45-49", swim:"1:33:58", bike:"5:37:28", run:"5:29:56", transitions:"0:12:05", total:"12:53:27", event:"Barcelona", year:2023 },
+  { firstName:"George", lastName:"Bousserski", gender:"m", ageGroup:"35-39", swim:"1:14:05", bike:"6:52:38", run:"4:37:11", transitions:"0:11:08", total:"12:55:02", event:"Canada", year:2016 },
+  { firstName:"Todor", lastName:"Manev", gender:"m", ageGroup:"35-39", swim:"1:41:39", bike:"6:10:14", run:"4:41:25", transitions:"0:22:24", total:"12:55:42", event:"Austria", year:2022 },
+  { firstName:"Boris", lastName:"Sarabeev", gender:"m", ageGroup:"35-39", swim:"1:28:37", bike:"6:13:12", run:"4:53:04", transitions:"0:20:50", total:"12:55:43", event:"Barcelona", year:2022 },
+  { firstName:"Ivan", lastName:"Mavrov", gender:"m", ageGroup:"35-39", swim:"1:34:49", bike:"6:13:30", run:"4:26:55", transitions:"0:40:39", total:"12:55:52", event:"Italy", year:2024 },
+  { firstName:"Desislav", lastName:"Delchev", gender:"m", ageGroup:"35-39", swim:"1:15:51", bike:"7:21:26", run:"3:54:46", transitions:"0:24:59", total:"12:57:02", event:"Lanzarote", year:2022 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"50-54", swim:"(0:45:34) *", bike:"6:09:25", run:"5:43:23", transitions:"0:19:44", total:"12:58:06", event:"Chattanooga", year:2023 },
+  { firstName:"Miroslav", lastName:"Kirilov", gender:"m", ageGroup:"40-44", swim:"1:39:08", bike:"7:07:48", run:"3:53:21", transitions:"0:19:16", total:"12:59:33", event:"France", year:2021 },
+  { firstName:"Slavi", lastName:"Kostov", gender:"m", ageGroup:"40-44", swim:"1:21:02", bike:"6:11:52", run:"5:07:46", transitions:"0:19:17", total:"12:59:57", event:"Barcelona", year:2022 },
+  { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"1:11:43", bike:"6:39:12", run:"4:46:15", transitions:"0:23:40", total:"13:00:50", event:"Poland", year:2021 },
+  { firstName:"Ivan", lastName:"Atanasov", gender:"m", ageGroup:"35-39", swim:"1:22:16", bike:"5:50:26", run:"5:24:47", transitions:"0:24:13", total:"13:01:42", event:"Italy", year:2024 },
+  { firstName:"Denis", lastName:"Rafailov", gender:"m", ageGroup:"30-34", swim:"1:34:36", bike:"5:54:20", run:"5:12:49", transitions:"0:20:04", total:"13:01:50", event:"Barcelona", year:2024 },
+  { firstName:"Andrey", lastName:"Parvanov", gender:"m", ageGroup:"50-54", swim:"1:26:01", bike:"5:42:23", run:"5:29:49", transitions:"0:23:45", total:"13:01:58", event:"Florida", year:2022 },
+  { firstName:"Dian", lastName:"Kirov", gender:"m", ageGroup:"30-34", swim:"1:20:32", bike:"6:52:26", run:"4:30:28", transitions:"0:18:34", total:"13:02:00", event:"Italy", year:2017 },
+  { firstName:"George", lastName:"Bousserski", gender:"m", ageGroup:"35-39", swim:"1:20:34", bike:"6:48:16", run:"4:45:20", transitions:"0:08:01", total:"13:02:11", event:"Canada", year:2014 },
+  { firstName:"Vidin", lastName:"NIkolov", gender:"m", ageGroup:"35-39", swim:"1:11:36", bike:"7:06:31", run:"4:26:29", transitions:"0:20:19", total:"13:04:55", event:"Lanzarote", year:2015 },
+  { firstName:"MIroslav", lastName:"Kirilov", gender:"m", ageGroup:"40-44", swim:"1:35:44", bike:"7:14:28", run:"3:57:57", transitions:"0:17:10", total:"13:05:19", event:"France", year:2023 },
+  { firstName:"Daniil", lastName:"Dukat", gender:"m", ageGroup:"40-44", swim:"1:17:15", bike:"6:31:30", run:"5:04:29", transitions:"0:12:18", total:"13:05:32", event:"Barcelona", year:2019 },
+  { firstName:"Yavor", lastName:"Atanasov", gender:"m", ageGroup:"40-44", swim:"1:31:04", bike:"6:44:23", run:"4:31:18", transitions:"0:22:37", total:"13:09:22", event:"Frankfurt", year:2023 },
+  { firstName:"Georgi", lastName:"Cholakov", gender:"m", ageGroup:"30-34", swim:"1:22:01", bike:"6:42:46", run:"4:41:10", transitions:"0:23:57", total:"13:09:54", event:"Italy", year:2021 },
+  { firstName:"Georgi", lastName:"Georgiev", gender:"m", ageGroup:"35-39", swim:"2:17:20", bike:"6:03:48", run:"4:23:18", transitions:"0:25:52", total:"13:10:17", event:"Arizona", year:2024 },
+  { firstName:"Boris", lastName:"Sarabeev", gender:"m", ageGroup:"35-39", swim:"1:28:47", bike:"6:31:34", run:"4:46:10", transitions:"0:24:12", total:"13:10:43", event:"Italy", year:2021 },
+  { firstName:"Grigor", lastName:"Varbanov", gender:"m", ageGroup:"40-44", swim:"1:17:33", bike:"6:04:26", run:"5:29:52", transitions:"0:20:52", total:"13:12:43", event:"Barcelona", year:2022 },
+  { firstName:"Nikolay", lastName:"Jordanov", gender:"m", ageGroup:"25-29", swim:"1:31:40", bike:"7:26:05", run:"3:53:32", transitions:"0:21:27", total:"13:12:44", event:"UK", year:2010 },
+  { firstName:"Nikolay", lastName:"Titev", gender:"m", ageGroup:"45-49", swim:"(0:14:36)*", bike:"6:32:25", run:"6:13:09", transitions:"0:29:48", total:"13:15:22", event:"South Africa", year:2023 },
+  { firstName:"Liubomir", lastName:"Spasov", gender:"m", ageGroup:"35-39", swim:"1:32:10", bike:"6:25:50", run:"4:50:32", transitions:"0:27:46", total:"13:16:18", event:"Italy", year:2024 },
+  { firstName:"Yuri", lastName:"Katanov", gender:"m", ageGroup:"45-49", swim:"(0:17:54)*", bike:"7:19:27", run:"5:27:24", transitions:"0:30:18", total:"13:17:09", event:"South Africa", year:2023 },
+  { firstName:"Alexander", lastName:"Georgiev", gender:"m", ageGroup:"35-39", swim:"1:50:52", bike:"6:39:37", run:"4:36:06", transitions:"0:11:57", total:"13:18:32", event:"South Africa", year:2012 },
+  { firstName:"Dobri", lastName:"Dobrev", gender:"m", ageGroup:"30-34", swim:"1:28:13", bike:"6:46:59", run:"4:27:30", transitions:"0:36:37", total:"13:19:19", event:"Austria", year:2019 },
+  { firstName:"Stefan", lastName:"Ivanov", gender:"m", ageGroup:"45-49", swim:"1:16:50", bike:"6:43:54", run:"5:00:05", transitions:"0:19:23", total:"13:20:12", event:"Canada", year:2010 },
+  { firstName:"Valeri", lastName:"Doichinov", gender:"m", ageGroup:"60-64", swim:"1:30:52", bike:"6:39:39", run:"4:46:47", transitions:"0:24:05", total:"13:21:23", event:"Barcelona", year:2022 },
+  { firstName:"Vidin", lastName:"Nikolov", gender:"m", ageGroup:"25-29", swim:"1:47:06", bike:"7:00:26", run:"4:24:16", transitions:"0:10:57", total:"13:22:45", event:"Lanzarote", year:2004 },
+  { firstName:"Milen", lastName:"Tzanov", gender:"m", ageGroup:"40-44", swim:"1:03:04", bike:"6:44:58", run:"5:11:11", transitions:"0:24:55", total:"13:24:08", event:"Italy", year:2018 },
+  { firstName:"Todor", lastName:"Popov", gender:"m", ageGroup:"45-49", swim:"1:24:59", bike:"6:12:45", run:"5:27:07", transitions:"0:19:50", total:"13:24:41", event:"Barcelona", year:2023 },
+  { firstName:"Aleksandar", lastName:"Negencov", gender:"m", ageGroup:"40-44", swim:"1:39:56", bike:"6:34:15", run:"4:45:18", transitions:"0:26:17", total:"13:25:46", event:"Italy", year:2024 },
+  { firstName:"Nikolay", lastName:"Titev", gender:"m", ageGroup:"40-44", swim:"1:14:19", bike:"6:35:11", run:"5:10:20", transitions:"0:26:53", total:"13:26:43", event:"France", year:2018 },
+  { firstName:"Stefan", lastName:"Ivanov", gender:"m", ageGroup:"45-49", swim:"1:23:37", bike:"6:18:19", run:"5:24:08", transitions:"0:22:49", total:"13:28:53", event:"Canada", year:2013 },
+  { firstName:"Nikolay", lastName:"Georgiev", gender:"m", ageGroup:"30-34", swim:"1:20:55", bike:"6:36:21", run:"5:15:47", transitions:"0:17:51", total:"13:30:54", event:"Copenhagen", year:2022 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"35-39", swim:"1:32:40", bike:"6:26:31", run:"5:24:25", transitions:"0:09:06", total:"13:32:42", event:"Frankfurt", year:2005 },
+  { firstName:"Boris", lastName:"Nedev", gender:"m", ageGroup:"50-54", swim:"1:22:04", bike:"6:47:19", run:"5:04:54", transitions:"0:18:59", total:"13:33:16", event:"Barcelona", year:2017 },
+  { firstName:"Maksim", lastName:"Lisitca", gender:"m", ageGroup:"30-34", swim:"1:23:23", bike:"7:30:57", run:"4:22:14", transitions:"0:17:49", total:"13:34:23", event:"Lanzarote", year:2023 },
+  { firstName:"Valentin", lastName:"Parkov", gender:"m", ageGroup:"30-34", swim:"1:37:44", bike:"6:37:16", run:"5:00:38", transitions:"0:18:56", total:"13:34:34", event:"Barcelona", year:2024 },
+  { firstName:"Bojidar", lastName:"Kassabov", gender:"m", ageGroup:"30-34", swim:"1:16:26", bike:"7:40:08", run:"4:29:17", transitions:"0:14:54", total:"13:40:45", event:"Frankfurt", year:2012 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:36:57", bike:"5:40:20", run:"6:01:03", transitions:"0:22:56", total:"13:41:16", event:"Indiana", year:2021 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"30-34", swim:"1:20:06", bike:"6:10:00", run:"5:54:35", transitions:"0:17:39", total:"13:42:20", event:"Lake Placid", year:2004 },
+  { firstName:"Nikolay", lastName:"Nachev", gender:"m", ageGroup:"35-39", swim:"2:01:03", bike:"5:46:34", run:"5:40:38", transitions:"0:14:18", total:"13:42:33", event:"Florida", year:2016 },
+  { firstName:"Dragomir", lastName:"Dragnev", gender:"m", ageGroup:"18-24", swim:"1:17:20", bike:"6:39:36", run:"5:26:18", transitions:"0:23:41", total:"13:46:54", event:"Maastricht", year:2022 },
+  { firstName:"Plamen", lastName:"Momchilov", gender:"m", ageGroup:"35-39", swim:"1:32:52", bike:"6:02:13", run:"5:51:04", transitions:"0:21:08", total:"13:47:17", event:"Italy", year:2023 },
+  { firstName:"Liubomir", lastName:"Spasov", gender:"m", ageGroup:"35-39", swim:"1:22:33", bike:"6:58:25", run:"4:38:28", transitions:"0:48:18", total:"13:47:44", event:"Barcelona", year:2022 },
+  { firstName:"Daniil", lastName:"Dukat", gender:"m", ageGroup:"45-49", swim:"1:24:02", bike:"6:45:58", run:"5:18:27", transitions:"0:21:41", total:"13:50:08", event:"Italy", year:2024 },
+  { firstName:"George", lastName:"Bousserski", gender:"m", ageGroup:"40-44", swim:"1:16:59", bike:"6:45:45", run:"5:38:58", transitions:"0:09:26", total:"13:51:08", event:"Canada", year:2017 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"35-39", swim:"1:18:07", bike:"7:11:48", run:"5:09:18", transitions:"0:13:35", total:"13:52:48", event:"Mont-Tremblant", year:2014 },
+  { firstName:"Asparuh", lastName:"Borisov", gender:"m", ageGroup:"40-44", swim:"1:32:35", bike:"7:02:41", run:"5:02:59", transitions:"0:16:39", total:"13:54:54", event:"World Champs", year:2021 },
+  { firstName:"Vladimir", lastName:"Kalinov", gender:"m", ageGroup:"25-29", swim:"1:51:22", bike:"7:07:45", run:"4:43:52", transitions:"0:14:05", total:"13:57:04", event:"Lake Placid", year:2011 },
+  { firstName:"Georgi", lastName:"Gyurov", gender:"m", ageGroup:"45-49", swim:"1:38:05", bike:"6:23:01", run:"5:27:18", transitions:"0:29:39", total:"13:58:04", event:"Hamburg", year:2024 },
+  { firstName:"Pano", lastName:"Panov", gender:"m", ageGroup:"35-39", swim:"1:34:30", bike:"7:14:35", run:"4:46:19", transitions:"0:24:12", total:"13:59:36", event:"Portugal", year:2021 },
+  { firstName:"Daniel", lastName:"Yordanov", gender:"m", ageGroup:"50-54", swim:"1:39:51", bike:"6:53:51", run:"5:08:32", transitions:"0:22:55", total:"14:05:09", event:"Italy", year:2023 },
+  { firstName:"Boian", lastName:"Tzonev", gender:"m", ageGroup:"45-49", swim:"1:39:48", bike:"6:44:30", run:"5:23:24", transitions:"0:18:29", total:"14:06:11", event:"Copenhagen", year:2023 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:29:12", bike:"5:36:55", run:"6:33:18", transitions:"0:27:16", total:"14:06:41", event:"Maryland", year:2021 },
+  { firstName:"Nikolay", lastName:"Titev", gender:"m", ageGroup:"40-44", swim:"1:16:29", bike:"7:03:18", run:"5:32:08", transitions:"0:17:18", total:"14:09:13", event:"France", year:2017 },
+  { firstName:"Boian", lastName:"Tzonev", gender:"m", ageGroup:"45-49", swim:"1:54:08", bike:"6:26:08", run:"5:34:34", transitions:"0:15:29", total:"14:10:20", event:"Frankfurt", year:2024 },
+  { firstName:"Dimitar", lastName:"Dimitrov", gender:"m", ageGroup:"50-54", swim:"1:37:27", bike:"6:43:55", run:"5:30:26", transitions:"0:18:56", total:"14:10:44", event:"Austria", year:2024 },
+  { firstName:"Nikolay", lastName:"Titev", gender:"m", ageGroup:"40-44", swim:"1:37:59", bike:"6:21:56", run:"5:55:39", transitions:"0:15:54", total:"14:11:28", event:"Switzerland", year:2018 },
+  { firstName:"Milen", lastName:"Tzanov", gender:"m", ageGroup:"40-44", swim:"1:11:41", bike:"7:26:53", run:"5:10:35", transitions:"0:23:34", total:"14:12:43", event:"Switzerland", year:2019 },
+  { firstName:"Georgi", lastName:"Cholakov", gender:"m", ageGroup:"30-34", swim:"1:21:14", bike:"7:03:20", run:"5:27:36", transitions:"0:22:43", total:"14:14:53", event:"Barcelona", year:2022 },
+  { firstName:"Biser", lastName:"Peltekov", gender:"m", ageGroup:"45-49", swim:"1:35:12", bike:"6:46:05", run:"5:41:01", transitions:"0:17:58", total:"14:20:16", event:"Arizona", year:2013 },
+  { firstName:"Bozhidar", lastName:"Tsochev", gender:"m", ageGroup:"35-39", swim:"1:32:06", bike:"7:48:23", run:"4:32:02", transitions:"0:28:17", total:"14:20:49", event:"Portugal", year:2024 },
+  { firstName:"Georgi", lastName:"Topalski", gender:"m", ageGroup:"45-49", swim:"1:09:07", bike:"7:32:54", run:"5:26:09", transitions:"0:12:40", total:"14:20:50", event:"Mont-Tremblant", year:2019 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"35-39", swim:"1:27:09", bike:"6:04:01", run:"6:40:39", transitions:"0:10:49", total:"14:22:38", event:"Coeur d'Alene", year:2005 },
+  { firstName:"Ivan", lastName:"Dimov", gender:"m", ageGroup:"40-44", swim:"1:45:38", bike:"7:07:46", run:"5:13:09", transitions:"0:21:07", total:"14:27:40", event:"Vichy", year:2017 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:04:16", bike:"5:52:25", run:"7:04:27", transitions:"0:26:44", total:"14:27:52", event:"Cozumel", year:2021 },
+  { firstName:"Kristian", lastName:"Danchev", gender:"m", ageGroup:"35-39", swim:"1:30:47", bike:"7:07:19", run:"5:27:31", transitions:"0:22:30", total:"14:28:07", event:"Italy", year:2023 },
+  { firstName:"Todor", lastName:"Sheljaskow", gender:"m", ageGroup:"35-39", swim:"1:46:50", bike:"6:55:37", run:"5:28:25", transitions:"0:19:07", total:"14:29:59", event:"Coeur D'Alene", year:2004 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"35-39", swim:"1:16:02", bike:"7:23:03", run:"5:18:14", transitions:"0:34:06", total:"14:31:25", event:"Lake Placid", year:2016 },
+  { firstName:"Stanislav", lastName:"Georgiev", gender:"m", ageGroup:"45-49", swim:"1:43:33", bike:"7:37:12", run:"4:45:09", transitions:"0:26:16", total:"14:32:10", event:"Austria", year:2014 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:46:03", bike:"6:34:32", run:"5:40:47", transitions:"0:31:55", total:"14:33:17", event:"Brazil", year:2023 },
+  { firstName:"Konstantin", lastName:"Trifonov", gender:"m", ageGroup:"30-34", swim:"1:32:05", bike:"6:53:30", run:"5:51:11", transitions:"0:17:09", total:"14:33:55", event:"Italy", year:2023 },
+  { firstName:"Ivan", lastName:"Atanasov", gender:"m", ageGroup:"30-34", swim:"1:22:35", bike:"6:31:06", run:"6:16:03", transitions:"0:26:34", total:"14:36:18", event:"Barcelona", year:2022 },
+  { firstName:"Plamen", lastName:"Kalchev", gender:"m", ageGroup:"35-39", swim:"1:19:05", bike:"7:54:53", run:"5:10:27", transitions:"0:13:33", total:"14:37:58", event:"Italy", year:2023 },
+  { firstName:"Stanislav", lastName:"Tanchev", gender:"m", ageGroup:"35-39", swim:"1:19:33", bike:"7:48:14", run:"5:00:37", transitions:"0:30:37", total:"14:39:01", event:"Lanzarote", year:2010 },
+  { firstName:"Aleksandar", lastName:"Hadzhidobrev", gender:"m", ageGroup:"25-29", swim:"1:49:09", bike:"6:37:50", run:"5:49:20", transitions:"0:22:49", total:"14:39:08", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"2:15:14", bike:"6:07:55", run:"5:45:20", transitions:"0:30:42", total:"14:39:11", event:"Florida", year:2021 },
+  { firstName:"Stanislav", lastName:"Rosnev", gender:"m", ageGroup:"25-29", swim:"1:11:06", bike:"7:23:10", run:"5:40:32", transitions:"0:25:36", total:"14:40:24", event:"Copenhagen", year:2023 },
+  { firstName:"Martin", lastName:"Dinev", gender:"m", ageGroup:"30-34", swim:"1:42:43", bike:"7:06:30", run:"5:24:10", transitions:"0:27:57", total:"14:41:20", event:"Italy", year:2024 },
+  { firstName:"Boji", lastName:"Kasabov", gender:"m", ageGroup:"25-29", swim:"1:19:22", bike:"7:54:41", run:"5:03:38", transitions:"0:23:42", total:"14:41:23", event:"France", year:2008 },
+  { firstName:"Radoslav", lastName:"Dishev", gender:"m", ageGroup:"25-29", swim:"1:27:17", bike:"8:10:53", run:"4:52:14", transitions:"0:27:47", total:"14:58:11", event:"France", year:2023 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:41:48", bike:"6:37:40", run:"6:22:35", transitions:"0:19:43", total:"15:01:46", event:"Mont-Tremblant", year:2023 },
+  { firstName:"Stefan", lastName:"Kiryazov", gender:"m", ageGroup:"35-39", swim:"1:36:40", bike:"8:51:38", run:"4:26:03", transitions:"0:21:34", total:"15:15:55", event:"Lanzarote", year:2019 },
+  { firstName:"Yordan", lastName:"Tsingov", gender:"m", ageGroup:"55-59", swim:"1:31:27", bike:"7:23:07", run:"5:55:10", transitions:"0:27:11", total:"15:16:55", event:"Hamburg", year:2024 },
+  { firstName:"Georgi", lastName:"Topalski", gender:"m", ageGroup:"40-44", swim:"1:23:29", bike:"7:38:50", run:"5:54:48", transitions:"0:20:58", total:"15:18:05", event:"Lake Placid", year:2017 },
+  { firstName:"Nikolay", lastName:"Bankin", gender:"m", ageGroup:"25-29", swim:"1:39:50", bike:"7:31:53", run:"5:54:15", transitions:"0:12:41", total:"15:18:39", event:"Barcelona", year:2023 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"45-49", swim:"1:15:06", bike:"7:10:56", run:"6:24:43", transitions:"0:33:24", total:"15:24:09", event:"Mont-Tremblant", year:2023 },
+  { firstName:"Yordan", lastName:"Tsingov", gender:"m", ageGroup:"55-59", swim:"1:27:05", bike:"7:33:19", run:"5:56:26", transitions:"0:28:18", total:"15:25:08", event:"Italy", year:2022 },
+  { firstName:"Ivan", lastName:"Mitev", gender:"m", ageGroup:"30-34", swim:"1:26:19", bike:"8:17:24", run:"5:28:23", transitions:"0:16:29", total:"15:28:35", event:"Austria", year:2022 },
+  { firstName:"Stefan", lastName:"Andreev", gender:"m", ageGroup:"25-29", swim:"1:18:58", bike:"9:07:00", run:"4:43:17", transitions:"0:19:44", total:"15:28:59", event:"Nice", year:2024 },
+  { firstName:"Pavel", lastName:"Pavlov", gender:"m", ageGroup:"50-54", swim:"1:33:53", bike:"7:32:17", run:"5:57:41", transitions:"0:25:24", total:"15:29:16", event:"Italy", year:2024 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:35:33", bike:"6:09:26", run:"7:19:17", transitions:"0:25:01", total:"15:29:17", event:"Waco", year:2021 },
+  { firstName:"Todor", lastName:"Batchvarov", gender:"m", ageGroup:"30-34", swim:"1:18:02", bike:"7:29:54", run:"6:19:10", transitions:"0:26:31", total:"15:33:37", event:"Cozumel", year:2018 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:35:48", bike:"6:07:20", run:"7:24:52", transitions:"0:26:58", total:"15:34:58", event:"Iowa", year:2022 },
+  { firstName:"Metodi", lastName:"Manolov", gender:"m", ageGroup:"30-34", swim:"1:47:18", bike:"7:15:40", run:"5:54:59", transitions:"0:42:25", total:"15:40:22", event:"Barcelona", year:2023 },
+  { firstName:"Petko", lastName:"Donev", gender:"m", ageGroup:"30-34", swim:"1:37:48", bike:"7:47:12", run:"5:56:27", transitions:"0:19:25", total:"15:40:52", event:"Kazakhstan", year:2022 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:34:41", bike:"6:24:29", run:"7:19:34", transitions:"0:28:02", total:"15:46:46", event:"Tulsa", year:2021 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:32:47", bike:"6:17:04", run:"7:22:26", transitions:"0:35:32", total:"15:47:49", event:"Florida", year:2020 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"35-39", swim:"1:24:02", bike:"7:32:04", run:"6:20:36", transitions:"0:32:08", total:"15:48:50", event:"Lake Placid", year:2015 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:34:40", bike:"8:04:44", run:"5:49:26", transitions:"0:22:38", total:"15:51:28", event:"Nice WC", year:2023 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:21:15", bike:"7:24:57", run:"6:34:58", transitions:"0:32:50", total:"15:54:00", event:"Lake Placid", year:2017 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"45-49", swim:"1:13:19", bike:"7:18:54", run:"7:20:38", transitions:"0:21:31", total:"16:14:22", event:"Lake Placid", year:2023 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:47:45", bike:"6:39:49", run:"7:25:02", transitions:"0:25:17", total:"16:17:53", event:"Texas", year:2022 },
+  { firstName:"Ivan", lastName:"Ivanov", gender:"m", ageGroup:"35-39", swim:"1:30:09", bike:"8:48:46", run:"5:44:03", transitions:"0:24:04", total:"16:27:02", event:"Austria", year:2023 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:23:45", bike:"7:54:16", run:"6:45:12", transitions:"0:28:53", total:"16:32:06", event:"Mont-Tremblant", year:2017 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:21:56", bike:"7:42:29", run:"7:14:21", transitions:"0:22:18", total:"16:41:04", event:"Mont-Tremblant", year:2019 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:57:00", bike:"6:59:48", run:"7:06:40", transitions:"0:37:58", total:"16:41:26", event:"Arizona", year:2022 },
+  { firstName:"Todor", lastName:"Batchvarov", gender:"m", ageGroup:"30-34", swim:"1:51:15", bike:"7:51:50", run:"6:29:36", transitions:"0:30:54", total:"16:43:35", event:"Coeur d'Alene", year:2017 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:18:05", bike:"8:23:16", run:"6:40:34", transitions:"0:28:52", total:"16:50:47", event:"Lake Placid", year:2019 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"45-49", swim:"1:20:59", bike:"7:22:51", run:"7:44:18", transitions:"0:22:57", total:"16:51:05", event:"Lake Placid", year:2022 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:32:30", bike:"7:57:24", run:"7:03:42", transitions:"0:23:33", total:"16:57:09", event:"Kona", year:2019 },
+  { firstName:"Kamen", lastName:"Yotov", gender:"m", ageGroup:"40-44", swim:"1:17:40", bike:"8:36:42", run:"6:36:05", transitions:"0:27:58", total:"16:58:25", event:"Lake Placid", year:2021 },
+  { firstName:"Ivan", lastName:"Popgruev", gender:"m", ageGroup:"50-54", swim:"1:07:05", bike:"7:14:35", run:"8:00:54", transitions:"0:36:23", total:"16:58:57", event:"Chattanooga", year:2022 },
+
+  { firstName:"Denitsa", lastName:"Zaykova", gender:"f", ageGroup:"30-34", swim:"1:18:49", bike:"6:09:48", run:"3:45:06", transitions:"0:16:35", total:"11:30:17", event:"Spain", year:2024 },
+  { firstName:"Denitsa", lastName:"Zaykova", gender:"f", ageGroup:"30-34", swim:"1:24:43", bike:"6:27:55", run:"3:48:15", transitions:"0:20:33", total:"12:01:26", event:"Italy", year:2023 },
+  { firstName:"VIktoriya", lastName:"Danova", gender:"f", ageGroup:"30-34", swim:"1:06:13", bike:"5:52:57", run:"4:58:51", transitions:"0:13:00", total:"12:11:01", event:"Italy", year:2023 },
+  { firstName:"Elitsa", lastName:"Danailov", gender:"f", ageGroup:"35-39", swim:"1:23:07", bike:"6:33:14", run:"4:03:51", transitions:"0:14:06", total:"12:14:18", event:"Switzerland", year:2015 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"45-49", swim:"(-) *", bike:"6:17:55", run:"6:04:36", transitions:"0:07:58", total:"12:30:29", event:"Florida", year:2014 },
+  { firstName:"Veselina", lastName:"Angelova", gender:"f", ageGroup:"35-39", swim:"1:10:46", bike:"6:28:30", run:"4:36:53", transitions:"0:18:54", total:"12:35:03", event:"Barcelona", year:2022 },
+  { firstName:"Milena", lastName:"Dobreva", gender:"f", ageGroup:"45-49", swim:"1:44:21", bike:"6:22:47", run:"4:16:34", transitions:"0:14:27", total:"12:38:09", event:"Barcelona", year:2023 },
+  { firstName:"Veselina", lastName:"Angelova", gender:"f", ageGroup:"35-39", swim:"0:55:01", bike:"6:56:17", run:"4:28:18", transitions:"0:19:47", total:"12:39:23", event:"Cozumel", year:2020 },
+  { firstName:"Aleksandra", lastName:"Gradinarova", gender:"f", ageGroup:"35-39", swim:"1:14:41", bike:"6:50:08", run:"4:25:22", transitions:"0:24:45", total:"12:54:56", event:"Santa Rosa", year:2016 },
+  { firstName:"Evelina", lastName:"Zlatanova", gender:"f", ageGroup:"35-39", swim:"1:27:54", bike:"6:49:17", run:"4:46:56", transitions:"0:09:38", total:"13:13:45", event:"Barcelona", year:2023 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:35:53", bike:"6:10:12", run:"5:21:19", transitions:"0:15:24", total:"13:22:48", event:"Louisville", year:2011 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:32:16", bike:"6:12:14", run:"5:28:29", transitions:"0:12:42", total:"13:25:41", event:"Louisville", year:2013 },
+  { firstName:"Mariya", lastName:"Hristova", gender:"f", ageGroup:"30-34", swim:"1:23:53", bike:"7:29:42", run:"4:29:41", transitions:"0:09:06", total:"13:32:22", event:"Canada", year:2014 },
+  { firstName:"Vera", lastName:"Malinska", gender:"f", ageGroup:"35-39", swim:"1:06:39", bike:"7:20:13", run:"4:51:03", transitions:"0:22:15", total:"13:40:10", event:"Italy", year:2024 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:00:03", bike:"6:19:38", run:"6:06:59", transitions:"0:15:31", total:"13:42:11", event:"Cozumel", year:2013 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:32:25", bike:"6:02:38", run:"5:51:52", transitions:"0:17:15", total:"13:44:10", event:"Texas", year:2013 },
+  { firstName:"Mariya", lastName:"Hristova", gender:"f", ageGroup:"35-39", swim:"1:41:38", bike:"6:36:45", run:"5:16:20", transitions:"0:11:24", total:"13:46:07", event:"Maryland", year:2018 },
+  { firstName:"Sandra", lastName:"Rangelova", gender:"f", ageGroup:"25-29", swim:"1:21:21", bike:"7:13:00", run:"5:03:28", transitions:"0:15:19", total:"13:53:08", event:"Portugal", year:2024 },
+  { firstName:"Daniela", lastName:"Dimitrova", gender:"f", ageGroup:"45-49", swim:"1:43:33", bike:"7:07:39", run:"4:48:34", transitions:"0:24:17", total:"14:04:02", event:"Italy", year:2024 },
+  { firstName:"Sandra", lastName:"Rangelova", gender:"f", ageGroup:"25-29", swim:"1:16:29", bike:"6:54:17", run:"5:38:05", transitions:"0:21:04", total:"14:09:55", event:"Austria", year:2023 },
+  { firstName:"Mariya", lastName:"Hristova", gender:"f", ageGroup:"30-34", swim:"1:36:55", bike:"7:27:52", run:"5:01:58", transitions:"0:10:41", total:"14:17:26", event:"Muskoka", year:2015 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:41:32", bike:"6:28:04", run:"5:45:08", transitions:"0:28:09", total:"14:22:53", event:"Louisville", year:2012 },
+  { firstName:"Mariya", lastName:"Hristova", gender:"f", ageGroup:"35-39", swim:"1:49:34", bike:"7:17:19", run:"5:09:38", transitions:"0:13:12", total:"14:29:43", event:"Mont-Tremblant", year:2016 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"45-49", swim:"1:28:07", bike:"6:28:28", run:"6:24:30", transitions:"0:18:13", total:"14:39:18", event:"Louisville", year:2014 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"45-49", swim:"1:50:15", bike:"6:27:34", run:"6:05:47", transitions:"0:23:58", total:"14:47:34", event:"Boulder", year:2015 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"1:35:22", bike:"7:29:00", run:"5:31:33", transitions:"0:23:46", total:"14:59:41", event:"UK", year:2012 },
+  { firstName:"Sandra", lastName:"Rangelova", gender:"f", ageGroup:"25-29", swim:"1:17:48", bike:"9:02:32", run:"5:10:18", transitions:"0:12:33", total:"15:43:12", event:"Lanzarote", year:2024 },
+  { firstName:"Nina", lastName:"Gueorguieva", gender:"f", ageGroup:"40-44", swim:"2:00:12", bike:"7:54:02", run:"6:00:01", transitions:"0:11:39", total:"16:05:54", event:"St. George", year:2012 },
+
+  { firstName: "Deyan", lastName: "Dimitrov", gender: "m", ageGroup: "30-34", swim: "01:02:10", bike: "05:31:24", run: "04:22:38", transitions: "00:12:41", total: "11:08:53", event: "Austria", year: 2025},
+  { firstName: "Nikolay", lastName: "Ginchev", gender: "m", ageGroup: "30-34", swim: "01:24:15", bike: "05:52:45", run: "04:25:00", transitions: "00:13:55", total: "11:55:55", event: "Austria", year: 2025},
+  { firstName: "Vladislav", lastName: "Ivanov", gender: "m", ageGroup: "30-34", swim: "01:22:08", bike: "06:08:04", run: "04:08:55", transitions: "00:18:23", total: "11:57:30", event: "Austria", year: 2025},
+  { firstName: "Bojidar", lastName: "Kassabov", gender: "m", ageGroup: "45-49", swim: "01:17:23", bike: "07:15:59", run: "04:55:37", transitions: "00:22:38", total: "13:51:37", event: "Austria", year: 2025},
+  { firstName: "Tsvetoslav", lastName: "Angelov", gender: "m", ageGroup: "45-49", swim: "01:06:19", bike: "05:01:21", run: "03:38:48", transitions: "00:08:54", total: "09:55:22", event: "Copenhagen", year: 2025},
+  { firstName: "Assen", lastName: "Antonov", gender: "m", ageGroup: "40-44", swim: "01:30:39", bike: "06:22:21", run: "05:05:20", transitions: "00:14:43", total: "13:13:03", event: "Tallinn", year: 2025},
+  { firstName: "Asparuh", lastName: "Borisov", gender: "m", ageGroup: "40-44", swim: "01:33:53", bike: "05:24:13", run: "04:51:58", transitions: "00:18:17", total: "12:08:21", event: "Florida", year: 2025},
+  { firstName: "George", lastName: "Ilchev", gender: "m", ageGroup: "50-54", swim: "01:28:38", bike: "05:58:12", run: "04:15:56", transitions: "00:19:09", total: "12:01:55", event: "Hamburg", year: 2025},
+  { firstName: "Desislav", lastName: "Delchev", gender: "m", ageGroup: "35-39", swim: "01:12:51", bike: "07:47:39", run: "04:26:08", transitions: "00:20:56", total: "13:47:34", event: "Lanzarote", year: 2025},
+  { firstName: "Atanas", lastName: "Vezirev", gender: "m", ageGroup: "55-59", swim: "01:24:30", bike: "06:30:01", run: "04:57:30", transitions: "00:26:55", total: "13:18:56", event: "Switzerland", year: 2025},
+  { firstName: "Christofor", lastName: "Baramov", gender: "m", ageGroup: "50-54", swim: "01:25:54", bike: "06:00:57", run: "04:08:47", transitions: "00:12:56", total: "11:48:34", event: "Spain", year: 2025},
+  { firstName: "Evelina", lastName: "Zlatanova", gender: "f", ageGroup: "35-39", swim: "01:18:32", bike: "06:29:46", run: "04:12:41", transitions: "00:10:04", total: "12:11:03", event: "Sweden", year: 2025},
+  { firstName: "Asen", lastName: "Dapev", gender: "m", ageGroup: "30-34", swim: "01:26:24", bike: "05:58:24", run: "05:00:13", transitions: "00:16:51", total: "12:41:52", event: "Sweden", year: 2025},
+  { firstName: "Stanimir", lastName: "Statev", gender: "m", ageGroup: "45-49", swim: "02:16:14", bike: "06:51:41", run: "05:05:56", transitions: "00:13:52", total: "14:27:43", event: "Sweden", year: 2025},
+  { firstName: "Gabriela", lastName: "Belleva", gender: "f", ageGroup: "25-29", swim: "01:18:46", bike: "07:53:47", run: "05:42:52", transitions: "00:14:55", total: "15:10:20", event: "Sweden", year: 2025},
+  { firstName: "Emil", lastName: "Stoynev", gender: "m", ageGroup: "3-34", swim: "12:58:36", bike: "04:36:32", run: "03:38:11", transitions: "00:11:45", total: "09:25:04", event: "Portugal", year: 2025},
+  { firstName: "Petar", lastName: "Hristov", gender: "m", ageGroup: "35-39", swim: "01:35:20", bike: "06:05:36", run: "03:18:22", transitions: "00:19:58", total: "11:19:16", event: "Portugal", year: 2025},
+  { firstName: "Vilian", lastName: "Dyankov", gender: "m", ageGroup: "25-29", swim: "02:10:42", bike: "06:49:18", run: "04:17:18", transitions: "00:16:55", total: "13:34:13", event: "Portugal", year: 2025},
+  { firstName: "Julian", lastName: "Dimov", gender: "m", ageGroup: "50-54", swim: "01:26:49", bike: "07:01:55", run: "04:58:19", transitions: "00:33:42", total: "14:00:45", event: "Portugal", year: 2025},
+  { firstName: "Galin", lastName: "Angelov", gender: "m", ageGroup: "45-49", swim: "01:06:03", bike: "05:02:33", run: "03:25:13", transitions: "00:10:00", total: "09:43:49", event: "Barcelona", year: 2025},
+  { firstName: "Svilen", lastName: "Enev", gender: "m", ageGroup: "30-34", swim: "01:17:47", bike: "04:57:11", run: "04:07:15", transitions: "00:09:04", total: "10:31:17", event: "Barcelona", year: 2025},
+  { firstName: "Miroslav", lastName: "Mirchev", gender: "m", ageGroup: "50-54", swim: "01:24:15", bike: "05:43:14", run: "03:39:43", transitions: "00:21:21", total: "11:08:33", event: "Barcelona", year: 2025},
+  { firstName: "Krasimir", lastName: "Minkin", gender: "m", ageGroup: "45-49", swim: "01:41:15", bike: "05:44:03", run: "04:18:31", transitions: "00:13:00", total: "11:56:49", event: "Barcelona", year: 2025},
+  { firstName: "Viktor", lastName: "Tenev", gender: "m", ageGroup: "30-34", swim: "01:50:26", bike: "06:47:51", run: "05:33:27", transitions: "00:31:33", total: "14:43:17", event: "Barcelona", year: 2025},
+  { firstName: "Hristian", lastName: "Iliev", gender: "m", ageGroup: "25-29", swim: "01:21:20", bike: "06:27:46", run: "06:32:15", transitions: "00:23:48", total: "14:45:09", event: "Barcelona", year: 2025},
+  { firstName: "Alexey", lastName: "Atanasov", gender: "m", ageGroup: "35-39", swim: "01:40:21", bike: "05:30:58", run: "03:50:12", transitions: "00:12:00", total: "11:13:31", event: "Italy", year: 2025},
+  { firstName: "Irnik", lastName: "Dimitrov", gender: "m", ageGroup: "25-29", swim: "01:32:47", bike: "05:53:32", run: "04:02:12", transitions: "00:15:21", total: "11:43:52", event: "Italy", year: 2025},
+  { firstName: "Omar", lastName: "La Duca", gender: "m", ageGroup: "35-39", swim: "01:21:46", bike: "05:53:45", run: "04:23:09", transitions: "00:17:36", total: "11:56:16", event: "Italy", year: 2025},
+  { firstName: "Ivan", lastName: "Ivanov", gender: "m", ageGroup: "40-44", swim: "01:19:54", bike: "06:01:55", run: "04:23:29", transitions: "00:25:33", total: "12:10:51", event: "Italy", year: 2025},
+  { firstName: "Petar", lastName: "Conev", gender: "m", ageGroup: "40-44", swim: "01:16:10", bike: "06:06:58", run: "04:36:15", transitions: "00:16:27", total: "12:15:50", event: "Italy", year: 2025},
+  { firstName: "Ivan", lastName: "Dobrev", gender: "m", ageGroup: "35-39", swim: "01:47:07", bike: "06:14:33", run: "04:20:01", transitions: "00:22:14", total: "12:43:55", event: "Italy", year: 2025},
+  { firstName: "Milen", lastName: "Kalchev", gender: "m", ageGroup: "50-54", swim: "01:33:03", bike: "06:18:53", run: "04:38:16", transitions: "00:20:17", total: "12:50:29", event: "Italy", year: 2025},
+  { firstName: "Slavi", lastName: "Kostov", gender: "m", ageGroup: "45-49", swim: "01:24:58", bike: "05:55:55", run: "05:13:21", transitions: "00:22:56", total: "12:57:10", event: "Italy", year: 2025},
+  { firstName: "Irena", lastName: "Atanasova", gender: "f", ageGroup: "18-24", swim: "01:08:44", bike: "06:26:50", run: "05:06:45", transitions: "00:15:10", total: "12:57:29", event: "Italy", year: 2025},
+  { firstName: "Daniel", lastName: "Shirokov", gender: "m", ageGroup: "25-29", swim: "01:20:09", bike: "07:03:20", run: "04:54:12", transitions: "00:34:02", total: "13:51:43", event: "Italy", year: 2025}
+];
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════ */
+function getEntries(category, gender) {
+  return ENTRIES
+    .filter(e => e.category === category && e.gender === gender)
+    .sort((a, b) => {
+      // Sort by result (as string, works for km distances and times alphabetically since
+      // we want highest km first and lowest time first — caller should handle if needed)
+      return 0; // keep original order (already ranked by insertion order above)
+    });
+}
+
+function getRecord(category, gender) {
+  const entries = getEntries(category, gender);
+  return entries.length > 0 ? entries[0] : null;
+}
+
+function rankClass(i) {
+  return i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+}
+
+// Calculate male equivalent from a time result string (h:mm:ss or hh:mm:ss)
+// by dividing total seconds by the given factor, then reformatting.
+function calcEquivalent(result, factor) {
+  const clean = result.replace(/^\*\s*/, '');
+  const parts = clean.split(':').map(Number);
+  if (parts.length < 2 || parts.some(isNaN)) return '—';
+  const totalSec = parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  const eqSec = Math.round(totalSec / factor);
+  const h = Math.floor(eqSec / 3600);
+  const m = Math.floor((eqSec % 3600) / 60).toString().padStart(2, '0');
+  const s = (eqSec % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+// Calculate distance-equivalent time by multiplying total seconds by the factor.
+// e.g. marathon × 0.4740 → half marathon estimate (shorter distance = smaller time)
+function calcDistanceEquivalent(result, factor) {
+  const clean = result.replace(/^\*\s*/, '');
+  const parts = clean.split(':').map(Number);
+  if (parts.length < 2 || parts.some(isNaN)) return '—';
+  const totalSec = parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  const eqSec = Math.round(totalSec * factor);
+  const h = Math.floor(eqSec / 3600);
+  const m = Math.floor((eqSec % 3600) / 60).toString().padStart(2, '0');
+  const s = (eqSec % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+
+/* ═══════════════════════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════════════════════ */
+const navItems = [
+  { id: 'pageRecords',     label: 'Национални Рекорди' },
+  { id: 'pageRankings',    label: 'Ранглисти' },
+  { id: 'pageVitosha',     label: 'Витоша 100' },
+  { id: 'pageIronman',     label: 'Ironman' },
+  { id: 'pageMarathon',    label: 'Маратон' },
+  { id: 'pageHalf',        label: 'Полумаратон' },
+  { id: 'pagePerformance',   label: 'Класиране по Резултат' },
+  { id: 'pagePerfCalc',      label: 'Калкулатор' },
+];
+
+const nav = document.getElementById('mainNav');
+navItems.forEach(item => {
+  const btn = document.createElement('button');
+  btn.className = 'nav-btn' + (item.id === 'pageRecords' ? ' active' : '');
+  btn.textContent = item.label;
+  btn.addEventListener('click', () => showPage(item.id, btn));
+  nav.appendChild(btn);
+});
+
+function showPage(pageId, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════
+   RECORDS PAGE
+   ═══════════════════════════════════════════════════════ */
+const tbody = document.getElementById('recordsTableBody');
+
+function raceLink(race, url) {
+  if (url) return '<a href="' + url + '" target="_blank" rel="noopener">' + race + '</a>';
+  return race || '—';
+}
+
+function recCell(rec) {
+  if (!rec) {
+    return `<td class="rec-name rec-empty" colspan="3">Няма рекорд</td>`;
+  }
+  return `
+    <td class="rec-name">${rec.name}</td>
+    <td class="rec-result">${rec.result}</td>
+    <td class="rec-meta">${raceLink(rec.race, rec.url)} · ${rec.year}</td>`;
+}
+
+Object.entries(DISCIPLINES).forEach(([key, label]) => {
+  const mRec = getRecord(key, 'm');
+  const fRec = getRecord(key, 'f');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="rec-discipline">${label}</td>
+    ${recCell(mRec)}
+    ${recCell(fRec)}`;
+  tbody.appendChild(tr);
+});
+
+/* ═══════════════════════════════════════════════════════
+   RANKINGS PAGE
+   ═══════════════════════════════════════════════════════ */
+let activeDisc = RANKING_CATEGORIES[0];
+
+const discBtnsWrap = document.getElementById('disciplineButtons');
+const rankingsTables = document.getElementById('rankingsTables');
+
+RANKING_CATEGORIES.forEach(key => {
+  if (!DISCIPLINES[key]) return;
+  const btn = document.createElement('button');
+  btn.className = 'disc-btn' + (key === activeDisc ? ' active' : '');
+  btn.textContent = DISCIPLINES[key];
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.disc-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeDisc = key;
+    renderRankings(key);
+  });
+  discBtnsWrap.appendChild(btn);
+});
+
+renderRankings(activeDisc);
+
+function buildTable(entries, gender) {
+  if (entries.length === 0) {
+    return `<div class="empty-state">Няма въведени резултати.</div>`;
+  }
+  const rows = entries.map((e, i) => `
+    <tr>
+      <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+      <td class="rank-name">${e.name}</td>
+      <td class="rank-result">${e.result}</td>
+      <td class="rank-year">${e.year}</td>
+      <td class="rank-race">${raceLink(e.race, e.url)}</td>
+    </tr>`).join('');
+
+  return `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Спортист</th>
+          <th>Резултат</th>
+          <th>Година</th>
+          <th>Състезание</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderRankings(key) {
+  const label = DISCIPLINES[key] || key;
+  const mEntries = getEntries(key, 'm');
+  const fEntries = getEntries(key, 'f');
+
+  rankingsTables.innerHTML = `
+    <div class="rank-table-wrap">
+      <div class="rank-table-title male">♂ Мъже · ${label}</div>
+      ${buildTable(mEntries, 'm')}
+    </div>
+    <div class="rank-table-wrap">
+      <div class="rank-table-title female">♀ Жени · ${label}</div>
+      ${buildTable(fEntries, 'f')}
+    </div>`;
+}
+
+
+
+/* ── IRONMAN RENDERING ── */
+(function() {
+  const ageFilter  = document.getElementById('imAgeFilter');
+  const searchBox  = document.getElementById('imSearch');
+  const maleWrap   = document.getElementById('imMaleWrap');
+  const femaleWrap = document.getElementById('imFemaleWrap');
+  const bestOnlyIm = document.getElementById('imBestOnly');
+
+  // Sort state: { field, dir }  dir = 'asc' | 'desc'
+  // Default: sort by total asc
+  let sortState = { field: 'total', dir: 'asc' };
+
+  // Sortable fields mapping: key → entry property
+  const SORT_FIELDS = {
+    total:       'total',
+    swim:        'swim',
+    bike:        'bike',
+    run:         'run',
+    transitions: 'transitions',
+  };
+
+  // Populate age group filter — strip gender prefix, deduplicate, sort numerically
+  const allAGs = [...new Set(IRONMAN_ENTRIES.map(e => e.ageGroup.replace(/^[MF]/, '')))]
+    .sort((a, b) => parseInt(a) - parseInt(b));
+  allAGs.forEach(ag => {
+    const opt = document.createElement('option');
+    opt.value = ag;
+    opt.textContent = ag;
+    ageFilter.appendChild(opt);
+  });
+
+  // Returns true if a time value is flagged (contains brackets or asterisk)
+  function isFlagged(t) {
+    return /[()\*]/.test(t);
+  }
+
+  // Convert "h:mm:ss" to total seconds; flagged values return Infinity
+  function toSec(t) {
+    if (isFlagged(t)) return Infinity;
+    const parts = t.split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function buildImTable(entries, gender) {
+    if (entries.length === 0) {
+      return `<div class="empty-state">Няма въведени резултати.</div>`;
+    }
+
+    // Column definitions: { key, label, sortable }
+    const cols = [    { key: '#',          label: '#',        sortable: false },
+      { key: 'name',       label: 'Спортист', sortable: false },
+      { key: 'total',      label: 'Общо',     sortable: true  },
+      { key: 'swim',       label: 'Плуване',  sortable: true  },
+      { key: 'bike',       label: 'Колело',   sortable: true  },
+      { key: 'run',        label: 'Бягане',   sortable: true  },
+      { key: 'transitions',label: 'T1+T2',    sortable: true  },
+      { key: 'ageGroup',   label: 'Гр.',      sortable: false },
+      { key: 'event',      label: 'Събитие',  sortable: false },
+    ];
+
+    const headerId = `imHead-${gender}`;
+
+    const headerCells = cols.map(c => {
+      if (!c.sortable) return `<th>${c.label}</th>`;
+      const isCurrent = sortState.field === c.key;
+      const cls = isCurrent ? `sortable sort-${sortState.dir}` : 'sortable';
+      return `<th class="${cls}" data-sort="${c.key}">${c.label}</th>`;
+    }).join('');
+
+    const rows = entries.map((e, i) => `
+      <tr>
+        <td class="im-rank ${rankClass(e._rank !== undefined ? e._rank : i)}">${(e._rank !== undefined ? e._rank : i) + 1}</td>
+        <td class="im-name">${e.firstName} ${e.lastName}</td>
+        <td class="im-total">${e.total}</td>
+        <td class="im-split">${e.swim}</td>
+        <td class="im-split">${e.bike}</td>
+        <td class="im-split">${e.run}</td>
+        <td class="im-split">${e.transitions}</td>
+        <td class="im-ag">${e.ageGroup}</td>
+        <td class="im-event">${e.event} · ${e.year}</td>
+      </tr>`).join('');
+
+    return `
+      <table class="im-table" id="${headerId}">
+        <thead>
+          <tr>${headerCells}</tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function getFiltered() {
+    const ag  = ageFilter.value;
+    const q   = searchBox.value.trim().toLowerCase();
+
+    return IRONMAN_ENTRIES.filter(e => {
+      if (ag !== 'all' && e.ageGroup.replace(/^[MF]/, '') !== ag) return false;
+      if (q) {
+        const full = `${e.firstName} ${e.lastName} ${e.event}`.toLowerCase();
+        if (!full.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortEntries(entries) {
+    const field = sortState.field;
+    const dir   = sortState.dir === 'asc' ? 1 : -1;
+    return [...entries].sort((a, b) => {
+      const af = isFlagged(a[field]);
+      const bf = isFlagged(b[field]);
+      // Flagged entries always sink to bottom, regardless of sort direction
+      if (af && bf) return 0;
+      if (af) return 1;
+      if (bf) return -1;
+      const av = toSec(a[field]);
+      const bv = toSec(b[field]);
+      return (av - bv) * dir;
+    });
+  }
+
+  function renderIronman() {
+    const filtered  = getFiltered();
+    const q = searchBox.value.trim().toLowerCase();
+    const ag = ageFilter.value;
+
+    // Sort ALL entries (filtered by age group only, not search) to get true ranks
+    const allFiltered = IRONMAN_ENTRIES.filter(e => {
+      if (ag !== 'all' && e.ageGroup.replace(/^[MF]/, '') !== ag) return false;
+      return true;
+    });
+    const mAllSorted = sortEntries(allFiltered.filter(e => e.gender === 'm'));
+    const fAllSorted = sortEntries(allFiltered.filter(e => e.gender === 'f'));
+
+    // Best-per-person filter: keep only the best result per full name
+    function bestPerPerson(sorted) {
+      if (!bestOnlyIm.checked) return sorted;
+      const seen = new Set();
+      return sorted.filter(e => {
+        const key = `${e.firstName} ${e.lastName}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    // Attach rank index to each entry, then apply search filter
+    function withRanks(sorted) {
+      return sorted
+        .map((e, i) => ({ ...e, _rank: i }))
+        .filter(e => {
+          if (!q) return true;
+          return `${e.firstName} ${e.lastName} ${e.event}`.toLowerCase().includes(q);
+        });
+    }
+
+    maleWrap.innerHTML   = buildImTable(withRanks(bestPerPerson(mAllSorted)), 'm');
+    femaleWrap.innerHTML = buildImTable(withRanks(bestPerPerson(fAllSorted)), 'f');
+
+    // Attach sort click handlers to both tables
+    ['m', 'f'].forEach(g => {
+      const tableId = `imHead-${g}`;
+      const table   = document.getElementById(tableId);
+      if (!table) return;
+      table.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+          const field = th.dataset.sort;
+          if (sortState.field === field) {
+            sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortState.field = field;
+            sortState.dir   = 'asc';
+          }
+          renderIronman();
+        });
+      });
+    });
+  }
+
+  // ── STATS CARDS ──────────────────────────────────────
+  (function buildStatsCards() {
+    const statsWrap = document.getElementById('imStats');
+
+    function fastest(gender, field) {
+      return IRONMAN_ENTRIES
+        .filter(e => e.gender === gender && !isFlagged(e[field]))
+        .reduce((best, e) => {
+          if (!best || toSec(e[field]) < toSec(best[field])) return e;
+          return best;
+        }, null);
+    }
+
+    function avgTime(gender, field) {
+      const valid = IRONMAN_ENTRIES.filter(e => e.gender === gender && !isFlagged(e[field]));
+      if (!valid.length) return null;
+      const avgSec = Math.round(valid.reduce((sum, e) => sum + toSec(e[field]), 0) / valid.length);
+      const h = Math.floor(avgSec / 3600);
+      const m = Math.floor((avgSec % 3600) / 60).toString().padStart(2, '0');
+      const s = (avgSec % 60).toString().padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    const fields = [
+      { key: 'total', label: 'Общо' },
+      { key: 'swim',  label: 'Плуване' },
+      { key: 'bike',  label: 'Колело' },
+      { key: 'run',   label: 'Бягане' },
+    ];
+
+    function cell(entry, field) {
+      if (!entry) return '<td><span class="stat-result">—</span></td>';
+      return `<td><span class="stat-result">${entry[field]}</span> <span class="stat-name">${entry.firstName} ${entry.lastName}</span></td>`;
+    }
+
+    function avgCell(time) {
+      if (!time) return '<td><span class="stat-result">—</span></td>';
+      return `<td><span class="stat-result">${time}</span></td>`;
+    }
+
+    const fastestRows = fields.map(f => {
+      const m = fastest('m', f.key);
+      const w = fastest('f', f.key);
+      return `<tr>
+        <td class="stat-label">${f.label}</td>
+        ${cell(m, f.key)}
+        ${cell(w, f.key)}
+      </tr>`;
+    }).join('');
+
+    const avgRows = fields.map(f => {
+      return `<tr>
+        <td class="stat-label">${f.label}</td>
+        ${avgCell(avgTime('m', f.key))}
+        ${avgCell(avgTime('f', f.key))}
+      </tr>`;
+    }).join('');
+
+    statsWrap.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card-title stat-card-toggle" onclick="this.parentElement.classList.toggle('stat-collapsed')">
+          <span>Най-бързи времена</span><span class="stat-chevron">▾</span>
+        </div>
+        <div class="stat-card-body">
+          <table class="stat-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>♂ Мъже</th>
+                <th>♀ Жени</th>
+              </tr>
+            </thead>
+            <tbody>${fastestRows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="stat-card stat-collapsed">
+        <div class="stat-card-title stat-card-toggle" onclick="this.parentElement.classList.toggle('stat-collapsed')">
+          <span>Средни времена</span><span class="stat-chevron">▾</span>
+        </div>
+        <div class="stat-card-body">
+          <table class="stat-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>♂ Мъже</th>
+                <th>♀ Жени</th>
+              </tr>
+            </thead>
+            <tbody>${avgRows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  })();
+
+  ageFilter.addEventListener('change', renderIronman);
+  searchBox.addEventListener('input',  renderIronman);
+  bestOnlyIm.addEventListener('change', renderIronman);
+  renderIronman();
+})();
+
+
+/* ═══════════════════════════════════════════════════════
+   VITOSHA 100 PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const vSearchBox  = document.getElementById('vitoshaSearch');
+  const vMaleWrap   = document.getElementById('vMaleWrap');
+  const vFemaleWrap = document.getElementById('vFemaleWrap');
+  const bestOnlyV   = document.getElementById('vBestOnly');
+
+  function toSec(t) {
+    const parts = t.split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function buildVitoshaTable(entries, gender) {
+    if (entries.length === 0) {
+      return `<div class="empty-state">Няма въведени резултати.</div>`;
+    }
+    const isMale = gender === 'm';
+    const isFemale = gender === 'f';
+    const gFactor = GENDER_FACTORS['vitosha'];
+    const dFactor = DISTANCE_FACTORS['vitosha'];
+    const rows = entries.map((e, i) => `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${e.name}</td>
+        <td class="rank-result">${e.result}</td>
+        <td class="rank-year">${e.year}</td>
+        ${isMale   ? `<td class="rank-equiv">${calcDistanceEquivalent(e.result, dFactor)}</td>` : ''}
+        ${isFemale ? `<td class="rank-equiv">${calcEquivalent(e.result, gFactor)}</td>` : ''}
+      </tr>`).join('');
+    return `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Спортист</th>
+            <th>Резултат</th>
+            <th>Година</th>
+            ${isMale   ? `<th class="rank-equiv-head">Екв. 100 км</th>` : ''}
+            ${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderVitosha() {
+    const q = vSearchBox.value.trim().toLowerCase();
+    const all = ENTRIES.filter(e => e.category === 'vitosha')
+      .sort((a, b) => toSec(a.result) - toSec(b.result));
+
+    function applyBest(entries) {
+      if (!bestOnlyV.checked) return entries;
+      const seen = new Set();
+      return entries.filter(e => {
+        if (seen.has(e.name)) return false;
+        seen.add(e.name);
+        return true;
+      });
+    }
+
+    function applySearch(entries) {
+      if (!q) return entries;
+      return entries.filter(e => e.name.toLowerCase().includes(q));
+    }
+
+    vMaleWrap.innerHTML   = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'm'))), 'm');
+    vFemaleWrap.innerHTML = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'f'))), 'f');
+  }
+
+  vSearchBox.addEventListener('input', renderVitosha);
+  bestOnlyV.addEventListener('change', renderVitosha);
+  renderVitosha();
+})();
+
+
+/* ═══════════════════════════════════════════════════════
+   MARATHON PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const mSearchBox  = document.getElementById('marathonSearch');
+  const mMaleWrap   = document.getElementById('mMaleWrap');
+  const mFemaleWrap = document.getElementById('mFemaleWrap');
+
+  function toSec(t) {
+    const parts = t.replace(/^\*\s*/, '').split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function buildTable(entries, gender) {
+    if (entries.length === 0) return `<div class="empty-state">Няма въведени резултати.</div>`;
+    const isMale = gender === 'm';
+    const isFemale = gender === 'f';
+    const gFactor = GENDER_FACTORS['marathon'];
+    const dFactor = DISTANCE_FACTORS['marathon'];
+    const rows = entries.map((e, i) => `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${e.name}</td>
+        <td class="rank-result">${e.result}</td>
+        <td class="rank-year">${e.year}</td>
+        <td class="rank-race">${raceLink(e.race, e.url)}</td>
+        ${isMale   ? `<td class="rank-equiv">${calcDistanceEquivalent(e.result, dFactor)}</td>` : ''}
+        ${isFemale ? `<td class="rank-equiv">${calcEquivalent(e.result, gFactor)}</td>` : ''}
+      </tr>`).join('');
+    return `
+      <table>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Екв. Полумаратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderMarathon() {
+    const q = mSearchBox.value.trim().toLowerCase();
+    const all = ENTRIES.filter(e => e.category === 'marathon')
+      .sort((a, b) => toSec(a.result) - toSec(b.result));
+    const males   = all.filter(e => e.gender === 'm');
+    const females = all.filter(e => e.gender === 'f');
+    function applySearch(entries) {
+      return q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
+    }
+    mMaleWrap.innerHTML   = buildTable(applySearch(males), 'm');
+    mFemaleWrap.innerHTML = buildTable(applySearch(females), 'f');
+  }
+
+  mSearchBox.addEventListener('input', renderMarathon);
+  renderMarathon();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   HALF MARATHON PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const hSearchBox  = document.getElementById('halfSearch');
+  const hMaleWrap   = document.getElementById('hMaleWrap');
+  const hFemaleWrap = document.getElementById('hFemaleWrap');
+
+  function toSec(t) {
+    const parts = t.replace(/^\*\s*/, '').split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function buildTable(entries, gender) {
+    if (entries.length === 0) return `<div class="empty-state">Няма въведени резултати.</div>`;
+    const isMale = gender === 'm';
+    const isFemale = gender === 'f';
+    const gFactor = GENDER_FACTORS['half'];
+    const dFactor = DISTANCE_FACTORS['half'];
+    const rows = entries.map((e, i) => `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${e.name}</td>
+        <td class="rank-result">${e.result}</td>
+        <td class="rank-year">${e.year}</td>
+        <td class="rank-race">${raceLink(e.race, e.url)}</td>
+        ${isMale   ? `<td class="rank-equiv">${calcDistanceEquivalent(e.result, dFactor)}</td>` : ''}
+        ${isFemale ? `<td class="rank-equiv">${calcEquivalent(e.result, gFactor)}</td>` : ''}
+      </tr>`).join('');
+    return `
+      <table>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Екв. Маратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderHalf() {
+    const q = hSearchBox.value.trim().toLowerCase();
+    const all = ENTRIES.filter(e => e.category === 'half')
+      .sort((a, b) => toSec(a.result) - toSec(b.result));
+    const males   = all.filter(e => e.gender === 'm');
+    const females = all.filter(e => e.gender === 'f');
+    function applySearch(entries) {
+      return q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
+    }
+    hMaleWrap.innerHTML   = buildTable(applySearch(males), 'm');
+    hFemaleWrap.innerHTML = buildTable(applySearch(females), 'f');
+  }
+
+  hSearchBox.addEventListener('input', renderHalf);
+  renderHalf();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   PERFORMANCE RANKING PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  function toSec(t) {
+    const parts = t.replace(/^\*\s*/, '').split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function fmtSec(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    const sc = (s % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${sc}`;
+  }
+
+  // For each of the 4 categories, get top 20 entries and score against the world record baseline.
+  // The WORLD_RECORDS values (mm, fm, mhm, fhm) are the "avg top 10" reference times.
+  // Formula: gap% = (result - wrSec) / wrSec * 100  → how many % slower than WR
+  //          score = 100 - gap%
+  // WR itself = 100%, anything slower = below 100%.
+  const categories = [
+    { key: 'marathon', gender: 'm', wrKey: 'mm',  label: '♂ Маратон' },
+    { key: 'marathon', gender: 'f', wrKey: 'fm',  label: '♀ Маратон' },
+    { key: 'half',     gender: 'm', wrKey: 'mhm', label: '♂ Полумаратон' },
+    { key: 'half',     gender: 'f', wrKey: 'fhm', label: '♀ Полумаратон' },
+  ];
+
+  function getCategoryData(cat) {
+    const entries = ENTRIES
+      .filter(e => e.category === cat.key && e.gender === cat.gender)
+      .sort((a, b) => toSec(a.result) - toSec(b.result));
+    return entries.slice(0, 20);
+  }
+
+  let allRows = [];
+  categories.forEach(cat => {
+    const wrSec = toSec(WORLD_RECORDS[cat.wrKey]);
+    const entries = getCategoryData(cat);
+    entries.forEach(e => {
+      const sec = toSec(e.result);
+      if (sec === Infinity) return;
+      const gap = (sec - wrSec) / wrSec * 100;
+      const pct = 100 - gap;
+      allRows.push({
+        name: e.name,
+        category: cat.label,
+        result: e.result,
+        year: e.year,
+        race: e.race,
+        sec,
+        wrSec,
+        pct,
+      });
+    });
+  });
+
+  // Keep only results at or above 80% performance
+  allRows = allRows.filter(r => r.pct >= 80);
+
+  // Sort by pct descending, then by raw time ascending as tiebreaker
+  allRows.sort((a, b) => b.pct - a.pct || a.sec - b.sec);
+
+  function pctClass(pct) {
+    if (pct >= 90) return 'perf-elite';
+    if (pct >= 85) return 'perf-a';
+    if (pct >= 80) return 'perf-b';
+    if (pct >= 75) return 'perf-c';
+    return '';
+  }
+
+  const equivOptions = [
+    { key: 'mm',  label: '♂ Маратон' },
+    { key: 'fm',  label: '♀ Маратон' },
+    { key: 'mhm', label: '♂ Полумаратон' },
+    { key: 'fhm', label: '♀ Полумаратон' },
+  ];
+
+  // Render the table, computing equivalent time from selected WR key
+  function renderPerfTable(equivKey) {
+    const equivWrSec = toSec(WORLD_RECORDS[equivKey]);
+    const isMaleEquiv = equivKey === 'mm' || equivKey === 'mhm';
+    const equivGenderClass = isMaleEquiv ? 'perf-equiv-male' : 'perf-equiv-female';
+
+    const rows = allRows.map((r, i) => {
+      const equivSec = Math.round(equivWrSec * (r.sec / r.wrSec));
+      const equivStr = fmtSec(equivSec);
+      return `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${r.name}</td>
+        <td class="perf-cat">${r.category}</td>
+        <td class="rank-result">${r.result}</td>
+        <td class="rank-year">${r.year}</td>
+        <td class="rank-race">${raceLink(r.race, r.url)}</td>
+        <td class="perf-pct ${pctClass(r.pct)}">${r.pct.toFixed(2)}%</td>
+        <td class="perf-pct ${equivGenderClass}">${equivStr}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('perfTbody').innerHTML = rows;
+  }
+
+  // WR reference table
+  const wrRows = [
+    { label: '♂ Маратон',     key: 'mm'  },
+    { label: '♀ Маратон',     key: 'fm'  },
+    { label: '♂ Полумаратон', key: 'mhm' },
+    { label: '♀ Полумаратон', key: 'fhm' },
+  ].map(w => `<tr><td>${w.label}</td><td class="rank-result">${WORLD_RECORDS[w.key]}</td></tr>`).join('');
+
+  document.getElementById('perfTableWrap').innerHTML = `
+    <table class="perf-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Спортист</th>
+          <th>Категория</th>
+          <th>Резултат</th>
+          <th>Година</th>
+          <th>Събитие</th>
+          <th>% Резултат</th>
+          <th class="rank-equiv-head" id="perfEquivHead">Еквивалент</th>
+        </tr>
+      </thead>
+      <tbody id="perfTbody"></tbody>
+    </table>`;
+
+  // Build dropdown and wire it up
+  const sel = document.getElementById('perfEquivSelect');
+  equivOptions.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.key;
+    opt.textContent = o.label;
+    sel.appendChild(opt);
+  });
+
+  function onEquivChange() {
+    const key = sel.value;
+    const opt = equivOptions.find(o => o.key === key);
+    const isMale = key === 'mm' || key === 'mhm';
+    const head = document.getElementById('perfEquivHead');
+    head.textContent = opt.label;
+    head.className = 'rank-equiv-head ' + (isMale ? 'perf-equiv-male' : 'perf-equiv-female');
+    renderPerfTable(key);
+  }
+
+  sel.addEventListener('change', onEquivChange);
+  onEquivChange();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   PERFORMANCE CALCULATOR PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const LEVELS = [
+    { key: 'elit',    label: 'Елит',      mult: 1.1, pct: 10 },
+    { key: 'subelit', label: 'Субелит',   mult: 1.2, pct: 20 },
+    { key: 'napr',    label: 'Напреднал', mult: 1.3, pct: 30 },
+    { key: 'lyub',    label: 'Трениращ',   mult: 1.4, pct: 40 },
+    { key: 'nach',    label: 'Любител',  mult: 1.5, pct: 50 },
+  ];
+
+  const discSel     = document.getElementById('pcDiscipline');
+  const pcInputM    = document.getElementById('pcInputM');
+  const pcInputF    = document.getElementById('pcInputF');
+  const pcTableWrap = document.getElementById('pcTableWrap');
+  const pcTbody     = document.getElementById('pcTbody');
+
+  // Populate discipline dropdown
+  CALC_REFERENCES.forEach(ref => {
+    const opt = document.createElement('option');
+    opt.value = ref.key;
+    opt.textContent = ref.label;
+    discSel.appendChild(opt);
+  });
+
+  function getRef(key) {
+    return CALC_REFERENCES.find(r => r.key === key) || null;
+  }
+
+  function toSec(str) {
+    const clean = (str || '').replace(/^\*\s*/, '').trim();
+    const parts = clean.split(':').map(Number);
+    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+    if (parts.length === 2) return parts[0]*3600 + parts[1]*60;
+    return Infinity;
+  }
+
+  function fmtTime(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60).toString().padStart(2,'0');
+    const s = (sec % 60).toString().padStart(2,'0');
+    return h + ':' + m + ':' + s;
+  }
+
+  function parseInput(raw, timeBased) {
+    if (!raw) return null;
+    if (timeBased) {
+      const s = toSec(raw);
+      return isFinite(s) && s > 0 ? s : null;
+    } else {
+      const d = parseFloat(raw);
+      return isFinite(d) && d > 0 ? d : null;
+    }
+  }
+
+  function barCell(baseValue, mult, genderClass) {
+    if (baseValue === null) return '<td class="pc-td-time ' + genderClass + '-col">—</td>';
+    const val = Math.round(baseValue * mult);
+    return '<td class="pc-td-time ' + genderClass + '-col">' + fmtTime(val) + '</td>';
+  }
+
+  function render(baseM, baseF) {
+    if (baseM === null && baseF === null) { pcTableWrap.style.display='none'; return; }
+    pcTableWrap.style.display = '';
+    pcTbody.innerHTML = LEVELS.map(lvl => {
+      return '<tr>' +
+        '<td class="pc-td-level pc-level-' + lvl.key + '">' + lvl.label + '</td>' +
+        '<td class="pc-td-pct">+' + lvl.pct + '%</td>' +
+        barCell(baseM, lvl.mult, 'male') +
+        barCell(baseF, lvl.mult, 'female') +
+      '</tr>';
+    }).join('');
+  }
+
+  function refresh() {
+    const key = discSel.value;
+    const ref = getRef(key);
+    const timeBased = ref ? ref.timeBased : true;
+    const baseM = parseInput(pcInputM.value.trim(), timeBased);
+    const baseF = parseInput(pcInputF.value.trim(), timeBased);
+    render(baseM, baseF);
+  }
+
+  function onDiscChange() {
+    const key = discSel.value;
+    const ref = getRef(key);
+    if (!ref) { pcTableWrap.style.display='none'; return; }
+    pcInputM.value = ref.m || '';
+    pcInputF.value = ref.f || '';
+    refresh();
+  }
+
+  discSel.addEventListener('change', onDiscChange);
+  pcInputM.addEventListener('input', refresh);
+  pcInputF.addEventListener('input', refresh);
+})();
+
+}); // end DOMContentLoaded
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Асоциация на Ултрамаратонците в България</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,300&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --border: #2a2f3d;
+    --accent: #c8a84b;
+    --accent2: #e63946;
+    --text: #e8eaf0;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --green: #22c55e;
+    --male: #4f9cf9;
+    --female: #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    background: var(--bg2);
+    border-bottom: 2px solid var(--accent);
+    padding: 0 2rem;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 60px,
+      rgba(200,168,75,0.03) 60px,
+      rgba(200,168,75,0.03) 61px
+    );
+    pointer-events: none;
+  }
+
+  .header-flag {
+    display: flex;
+    flex-direction: column;
+    width: 48px;
+    align-self: stretch;
+    flex-shrink: 0;
+    margin-right: 1.5rem;
+    position: relative;
+  }
+  .header-flag span {
+    flex: 1;
+    display: block;
+  }
+  .flag-white { background: #fff; }
+  .flag-green { background: #00966e; }
+  .flag-red   { background: #d62612; }
+
+  .header-content {
+    padding: 1.4rem 0;
+    flex: 1;
+  }
+
+  .header-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+  }
+
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .header-title span { color: var(--accent); }
+
+  .header-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+
+  .nav-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    padding: 0.9rem 1.1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    position: relative;
+    top: 1px;
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 2rem; }
+  .page.active { display: block; }
+
+  /* ── RECORDS PAGE ── */
+  .records-intro {
+    max-width: 640px;
+    margin-bottom: 2rem;
+  }
+  .records-intro h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .records-intro p {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .records-table-wrap {
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .records-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  .records-table .col-group-header th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .records-table .col-group-header th.discipline-col {
+    background: var(--bg);
+    color: transparent;
+    border-bottom: 1px solid var(--border);
+    border-right: 2px solid var(--border);
+    width: 110px;
+  }
+  .records-table .col-group-header th.male-header {
+    background: rgba(79,156,249,0.10);
+    color: var(--male);
+    border-left: 3px solid var(--male);
+    border-right: 1px solid var(--border);
+  }
+  .records-table .col-group-header th.female-header {
+    background: rgba(244,114,182,0.10);
+    color: var(--female);
+    border-left: 3px solid var(--female);
+  }
+
+  .records-table .sub-header th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg3);
+    padding: 0.5rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .records-table .sub-header th.disc-sub {
+    border-right: 2px solid var(--border);
+  }
+  .records-table .sub-header th.male-sub-last {
+    border-right: 1px solid var(--border);
+  }
+
+  .records-table tbody tr {
+    border-bottom: 1px solid rgba(42,47,61,0.7);
+    transition: background 0.15s;
+  }
+  .records-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+  .records-table tbody tr:last-child { border-bottom: none; }
+
+  .records-table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+  }
+
+  .rec-discipline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    white-space: nowrap;
+    border-right: 2px solid var(--border);
+  }
+
+  .rec-name {
+    font-weight: 400;
+    color: var(--text);
+    min-width: 140px;
+  }
+
+  .rec-result {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  .rec-meta {
+    font-size: 0.90rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 100px;
+    border-right: 1px solid var(--border);
+  }
+
+  .rec-empty {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  @media (max-width: 700px) {
+    .rec-meta { display: none; }
+  }
+
+  /* ── RANKINGS PAGE ── */
+  .rankings-header {
+    margin-bottom: 2rem;
+  }
+  .rankings-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+  }
+  .rankings-header p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .discipline-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .disc-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--bg3);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1.1rem;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .disc-btn:hover {
+    background: var(--bg2);
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .disc-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Rankings tables side-by-side */
+  .rankings-tables {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 700px) {
+    .rankings-tables { grid-template-columns: 1fr; }
+  }
+
+  .rank-table-wrap {}
+
+  .rank-table-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .rank-table-title.male {
+    background: rgba(79,156,249,0.12);
+    color: var(--male);
+    border-left: 3px solid var(--male);
+  }
+  .rank-table-title.female {
+    background: rgba(244,114,182,0.12);
+    color: var(--female);
+    border-left: 3px solid var(--female);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+  }
+
+  thead th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg3);
+    padding: 0.6rem 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42,47,61,0.6);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  tbody td {
+    padding: 0.65rem 0.75rem;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  .rank-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    width: 28px;
+  }
+  .rank-num.gold   { color: #f0b429; }
+  .rank-num.silver { color: #adb5bd; }
+  .rank-num.bronze { color: #cd7f32; }
+
+  .rank-name { font-weight: 400; color: var(--text); }
+
+  .rank-equiv {
+    font-size: 0.82rem;
+    color: var(--male);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding: 0.45rem 0.7rem;
+  }
+  .rank-equiv-head {
+    color: var(--male);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .perf-select {
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.6rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .perf-select:focus { outline: 1px solid var(--accent); }
+
+  /* ── PERFORMANCE RANKING PAGE ── */
+  .perf-subtitle {
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+    max-width: 680px;
+    line-height: 1.6;
+  }
+
+  .perf-wr-wrap {
+    margin: 1.5rem 0;
+    display: inline-block;
+  }
+
+  .perf-wr-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .perf-wr-table {
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+
+  .perf-wr-table td { padding: 0.35rem 0.9rem; }
+
+  .perf-table { margin-top: 0.5rem; }
+
+  .perf-cat {
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .perf-avg {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .perf-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--text-dim);
+  }
+  .perf-equiv-male   { color: var(--male); text-align: center; }
+  .perf-equiv-female { color: var(--female); text-align: center; }
+  .perf-pct.perf-elite { color: #f0b429; }
+  .perf-pct.perf-a     { color: var(--green); }
+  .perf-pct.perf-b     { color: #f59e0b; }
+  .perf-pct.perf-c     { color: var(--text-dim); }
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  .rank-year {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .rank-race {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rank-race a, .rec-meta a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--green);
+    text-underline-offset: 2px;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+  }
+  .rank-race a:hover, .rec-meta a:hover {
+    opacity: 1;
+    color: var(--green);
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-style: italic;
+  }
+
+  /* ── IRONMAN PAGE ── */
+  .ironman-header {
+    margin-bottom: 2rem;
+  }
+  .ironman-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+  }
+  .ironman-header p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .ironman-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+  .ironman-filters label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: 0.15rem;
+  }
+  .ironman-filters select {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.4rem 1.8rem 0.4rem 0.8rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.55rem center;
+  }
+  .ironman-filters select:focus { border-color: var(--accent); }
+
+  .im-search {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 300;
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.9rem;
+    outline: none;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+  .im-search::placeholder { color: var(--text-muted); }
+  .im-search:focus { border-color: var(--accent); }
+
+
+  /* ── BEST-PER-PERSON CHECKBOX ── */
+  .im-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .im-checkbox-label:hover { color: var(--text); }
+  .im-checkbox-label input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .im-checkbox-label input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .im-checkbox-label input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 5px;
+    height: 8px;
+    border: 2px solid var(--bg);
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+  }
+  .im-filter-sep {
+    width: 1px;
+    height: 1.5rem;
+    background: var(--border);
+    margin: 0 0.25rem;
+  }
+
+  .ironman-tables {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .ironman-tables { grid-template-columns: 1fr; }
+  }
+
+  .im-table-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .im-table-title.male {
+    background: rgba(79,156,249,0.12);
+    color: var(--male);
+    border-left: 3px solid var(--male);
+  }
+  .im-table-title.female {
+    background: rgba(244,114,182,0.12);
+    color: var(--female);
+    border-left: 3px solid var(--female);
+  }
+
+  .im-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .im-table thead th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg3);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .im-table thead th.sortable {
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .im-table thead th.sortable:hover { color: var(--text); }
+  .im-table thead th.sort-asc  { color: var(--accent); }
+  .im-table thead th.sort-desc { color: var(--accent); }
+  .im-table thead th.sort-asc::after  { content: ' ↑'; }
+  .im-table thead th.sort-desc::after { content: ' ↓'; }
+
+  .im-table tbody tr {
+    border-bottom: 1px solid rgba(42,47,61,0.6);
+    transition: background 0.15s;
+  }
+  .im-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+  .im-table tbody tr:last-child { border-bottom: none; }
+
+  .im-table tbody td {
+    padding: 0.65rem 0.75rem;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .im-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    width: 24px;
+  }
+  .im-rank.gold   { color: #f0b429; }
+  .im-rank.silver { color: #adb5bd; }
+  .im-rank.bronze { color: #cd7f32; }
+
+  .im-name { font-weight: 400; color: var(--text); font-size: 0.92rem; }
+
+  .im-total {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--green);
+  }
+
+  .im-split {
+    font-family: 'Barlow Condensed', sans-serif;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+
+  .im-ag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.82rem;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+
+  .im-event {
+    font-size: 0.82rem;
+    color: var(--text);
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  /* ── STAT CARDS ── */
+  .im-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    justify-content: flex-end;
+  }
+
+  .stat-card-toggle {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+  }
+  .stat-card-toggle:hover { color: var(--accent); }
+  .stat-chevron {
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+    margin-left: 0.6rem;
+  }
+  .stat-collapsed .stat-chevron { transform: rotate(-90deg); }
+  .stat-collapsed .stat-card-body { display: none; }
+  .stat-card-title { margin-bottom: 0.8rem; }
+  .stat-collapsed .stat-card-title { margin-bottom: 0; }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.4rem 1.1rem;
+    width: fit-content;
+    min-width: 0;
+  }
+
+  .stat-card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .stat-table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+
+  .stat-table thead th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.63rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 1.2rem 0.4rem 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .stat-table thead th:last-child { padding-right: 0; }
+
+  .stat-table tbody tr {
+    border-bottom: 1px solid rgba(42,47,61,0.5);
+  }
+  .stat-table tbody tr:last-child { border-bottom: none; }
+
+  .stat-table tbody td {
+    padding: 0.55rem 1.2rem 0.55rem 0;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .stat-table tbody td:last-child { padding-right: 0; }
+
+  .stat-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .stat-result {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  .stat-name {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 400;
+    font-size: 0.92rem;
+    color: var(--text);
+    margin-left: 0.4rem;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
+  /* ── PERFORMANCE CALCULATOR ── */
+  .pc-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+  }
+  .pc-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .pc-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .pc-hint {
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    opacity: 0.7;
+    text-transform: none;
+  }
+  .pc-select, .pc-input {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    background: var(--bg3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.45rem 1.8rem 0.45rem 0.8rem;
+    outline: none;
+    min-width: 200px;
+  }
+  .pc-select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.55rem center;
+    background-size: 10px 6px;
+  }
+  .pc-select:focus, .pc-input:focus {
+    border-color: var(--accent);
+  }
+  .pc-input { padding-right: 0.8rem; }
+  .pc-gender-btns, .pc-gender-btn { display: none; }
+
+  .male-col   { border-left: 2px solid #3b82f6; }
+  .female-col { border-left: 2px solid #ec4899; }
+  .pc-th-time.male-col, .pc-th-time.female-col {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+  }
+  .pc-bar-fill.male   { background: #3b82f6; }
+  .pc-bar-fill.female { background: #ec4899; }
+  .pc-record-note {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 1.2rem;
+    padding: 0.5rem 0.8rem;
+    border-left: 3px solid var(--accent);
+    background: var(--bg3);
+  }
+  .pc-record-note strong { color: var(--accent); }
+  .pc-table-wrap { overflow-x: auto; }
+  .pc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  .pc-table thead th {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.5rem 0.8rem;
+    border-bottom: 2px solid var(--border);
+    text-align: center;
+    background: var(--bg2);
+  }
+  .pc-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+  .pc-table tbody tr:hover { background: var(--bg3); }
+  .pc-table td {
+    padding: 0.85rem 0.8rem;
+    vertical-align: middle;
+  }
+  .pc-td-level {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    min-width: 120px;
+  }
+  .pc-td-pct {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    min-width: 90px;
+  }
+  .pc-td-time {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    min-width: 120px;
+  }
+  .pc-td-bar { width: 100%; min-width: 120px; }
+  .pc-bar-track {
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .pc-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  /* level colours */
+  .pc-level-elit   { color: #f0b429; }
+  .pc-level-elit .pc-bar-fill   { background: #f0b429; }
+  .pc-level-napr   { color: var(--green); }
+  .pc-level-napr .pc-bar-fill   { background: var(--green); }
+  .pc-level-lyub   { color: #60a5fa; }
+  .pc-level-lyub .pc-bar-fill   { background: #60a5fa; }
+  .pc-level-nach   { color: #a78bfa; }
+  .pc-level-nach .pc-bar-fill   { background: #a78bfa; }
+  .pc-level-bot    { color: var(--text-muted); }
+  .pc-level-bot .pc-bar-fill    { background: var(--text-muted); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-flag">
+    <span class="flag-white"></span>
+    <span class="flag-green"></span>
+    <span class="flag-red"></span>
+  </div>
+  <div class="header-content">
+    <div class="header-eyebrow">Асоциация на Ултрамаратонците в България (АУБ)</div>
+    <div class="header-title">Рекорди | <span> Ранглисти</span></div>
+  </div>
+</header>
+
+<nav id="mainNav">
+  <!-- populated by JS -->
+</nav>
+
+<div id="pageRecords" class="page active">
+  <div class="records-intro">
+    <h2>Национални Рекорди</h2>
+  </div>
+  <div class="records-table-wrap">
+    <table class="records-table">
+      <thead>
+        <tr class="col-group-header">
+          <th class="discipline-col">—</th>
+          <th class="male-header" colspan="3">♂ Мъже</th>
+          <th class="female-header" colspan="3">♀ Жени</th>
+        </tr>
+        <tr class="sub-header">
+          <th class="disc-sub">Дисциплина</th>
+          <th>Спортист</th>
+          <th>Резултат</th>
+          <th class="male-sub-last">Място · Година</th>
+          <th>Спортистка</th>
+          <th>Резултат</th>
+          <th>Място · Година</th>
+        </tr>
+      </thead>
+      <tbody id="recordsTableBody">
+        <!-- populated by JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="pageRankings" class="page">
+  <div class="rankings-header">
+    <h2>Ранглисти</h2>
+  </div>
+  <div class="discipline-grid" id="disciplineButtons">
+    <!-- populated by JS -->
+  </div>
+  <div class="rankings-tables" id="rankingsTables">
+    <!-- populated by JS -->
+  </div>
+</div>
+
+<div id="pageIronman" class="page">
+  <div class="ironman-header">
+    <h2>Ironman Ранглиста</h2>
+  </div>
+  <div class="im-stats" id="imStats">
+    <!-- populated by JS -->
+  </div>
+  <div class="ironman-filters">
+    <label>Търсене:</label>
+    <input class="im-search" id="imSearch" type="text" placeholder="Име или събитие…">
+    <div class="im-filter-sep"></div>
+    <label class="im-checkbox-label"><input type="checkbox" id="imBestOnly"> Само най-добър резултат</label>
+    <div class="im-filter-sep"></div>
+    <label>Възр. група:</label>
+    <select id="imAgeFilter">
+      <option value="all">Всички</option>
+    </select>
+  </div>
+  <div class="ironman-tables">
+    <div>
+      <div class="im-table-title male">♂ Мъже</div>
+      <div id="imMaleWrap"></div>
+    </div>
+    <div>
+      <div class="im-table-title female">♀ Жени</div>
+      <div id="imFemaleWrap"></div>
+    </div>
+  </div>
+</div>
+<div id="pageVitosha" class="page">
+  <div class="ironman-header">
+    <h2>Витоша 100 Ранглиста (2017-2025)</h2>
+  </div>
+  <div class="ironman-filters">
+    <label>Търсене:</label>
+    <input class="im-search" id="vitoshaSearch" type="text" placeholder="Име…">
+    <div class="im-filter-sep"></div>
+    <label class="im-checkbox-label"><input type="checkbox" id="vBestOnly"> Само най-добър резултат</label>
+  </div>
+  <div class="ironman-tables">
+    <div>
+      <div class="im-table-title male">♂ Мъже</div>
+      <div id="vMaleWrap"></div>
+    </div>
+    <div>
+      <div class="im-table-title female">♀ Жени</div>
+      <div id="vFemaleWrap"></div>
+    </div>
+  </div>
+</div>
+<div id="pageMarathon" class="page">
+  <div class="ironman-header">
+    <h2>Маратон Ранглиста (2004-2026)</h2>
+  </div>
+  <div class="ironman-filters">
+    <label>Търсене:</label>
+    <input class="im-search" id="marathonSearch" type="text" placeholder="Име…">
+  </div>
+  <div class="ironman-tables">
+    <div>
+      <div class="im-table-title male">♂ Мъже</div>
+      <div id="mMaleWrap"></div>
+    </div>
+    <div>
+      <div class="im-table-title female">♀ Жени</div>
+      <div id="mFemaleWrap"></div>
+    </div>
+  </div>
+</div>
+<div id="pageHalf" class="page">
+  <div class="ironman-header">
+    <h2>Полумаратон Ранглиста (2014-2026)</h2>
+  </div>
+  <div class="ironman-filters">
+    <label>Търсене:</label>
+    <input class="im-search" id="halfSearch" type="text" placeholder="Име…">
+  </div>
+  <div class="ironman-tables">
+    <div>
+      <div class="im-table-title male">♂ Мъже</div>
+      <div id="hMaleWrap"></div>
+    </div>
+    <div>
+      <div class="im-table-title female">♀ Жени</div>
+      <div id="hFemaleWrap"></div>
+    </div>
+  </div>
+</div>
+</footer>
+
+<div id="pagePerformance" class="page">
+  <div class="ironman-header">
+    <h2>Класиране по Резултат</h2>
+    <p class="perf-subtitle">Най-силни български резултати от маратон и полумаратон, оценени като % от топ 10 времена в историята.</p>
+  </div>
+  <div class="ironman-filters">
+    <div class="im-filter-sep"></div>
+    <label>Еквивалент към:</label>
+    <select id="perfEquivSelect" class="perf-select"></select>
+  </div>
+  <div id="perfTableWrap"></div>
+</div>
+
+<div id="pagePerfCalc" class="page">
+  <div class="ironman-header">
+    <h2>Калкулатор на Резултат</h2>
+    <p class="perf-subtitle">Избери дисциплина или въведи резултат ръчно, за да видиш нивата на изпълнение.</p>
+  </div>
+  <div class="pc-controls">
+    <div class="pc-control-group">
+      <label class="pc-label">Дисциплина</label>
+      <select id="pcDiscipline" class="pc-select">
+        <option value="">— Изберете —</option>
+      </select>
+    </div>
+    <div class="pc-control-group">
+      <label class="pc-label">♂ Резултат <span class="pc-hint">(чч:мм:сс)</span></label>
+      <input id="pcInputM" class="pc-input" type="text" placeholder="напр. 06:53:12">
+    </div>
+    <div class="pc-control-group">
+      <label class="pc-label">♀ Резултат <span class="pc-hint">(чч:мм:сс)</span></label>
+      <input id="pcInputF" class="pc-input" type="text" placeholder="напр. 08:57:49">
+    </div>
+  </div>
+  <div id="pcTableWrap" class="pc-table-wrap" style="display:none">
+    <table class="pc-table">
+      <thead>
+        <tr>
+          <th class="pc-th-level">Ниво</th>
+          <th class="pc-th-pct">%</th>
+          <th class="pc-th-time male-col">♂ Резултат</th>
+          <th class="pc-th-time female-col">♀ Резултат</th>
+        </tr>
+      </thead>
+      <tbody id="pcTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
