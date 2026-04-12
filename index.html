@@ -1195,8 +1195,8 @@ function renderRankings(key) {
     }).join('');
 
     statsWrap.innerHTML = `
-      <div class="stat-card stat-collapsed">
-        <div class="stat-card-title stat-card-toggle" onclick="this.parentElement.classList.toggle('stat-collapsed')">
+      <div class="stat-card stat-collapsed" id="statCardFastest">
+        <div class="stat-card-title stat-card-toggle" onclick="['statCardFastest','statCardAvg'].forEach(id=>document.getElementById(id).classList.toggle('stat-collapsed'))">
           <span>Най-бързи времена</span><span class="stat-chevron">▾</span>
         </div>
         <div class="stat-card-body">
@@ -1212,8 +1212,8 @@ function renderRankings(key) {
           </table>
         </div>
       </div>
-      <div class="stat-card stat-collapsed">
-        <div class="stat-card-title stat-card-toggle" onclick="this.parentElement.classList.toggle('stat-collapsed')">
+      <div class="stat-card stat-collapsed" id="statCardAvg">
+        <div class="stat-card-title stat-card-toggle" onclick="['statCardFastest','statCardAvg'].forEach(id=>document.getElementById(id).classList.toggle('stat-collapsed'))">
           <span>Средни времена</span><span class="stat-chevron">▾</span>
         </div>
         <div class="stat-card-body">
@@ -1348,7 +1348,7 @@ function renderRankings(key) {
       </tr>`).join('');
     return `
       <table>
-        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Екв. Полумаратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Еквивалент Полумаратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -1402,7 +1402,7 @@ function renderRankings(key) {
       </tr>`).join('');
     return `
       <table>
-        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Екв. Маратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Еквивалент Маратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -1671,6 +1671,10 @@ function renderRankings(key) {
   discSel.addEventListener('change', onDiscChange);
   pcInputM.addEventListener('input', refresh);
   pcInputF.addEventListener('input', refresh);
+
+  // Default to 5k on load
+  discSel.value = '5k';
+  onDiscChange();
 })();
 
 }); // end DOMContentLoaded
