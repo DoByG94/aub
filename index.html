@@ -41,13 +41,15 @@ const GENDER_FACTORS = {
 };
 
 // 2d. WORLD RECORDS (for performance % calculation)
-// mm = male marathon, fm = female marathon
-// mhm = male half marathon, fhm = female half marathon
-const WORLD_RECORDS = {
+const AVG_TOP_10 = {
   "mm":  "2:01:41",
   "fm":  "2:13:18",
   "mhm": "0:57:37",
   "fhm": "1:03:35",
+  "m5k": "0:12:39",
+  "f5k": "0:14:04",
+  "m10k": "0:26:24",
+  "f10k": "0:29:07",
 };
 // Used to calculate an equivalent time for a different distance.
 // Vitosha 100 → 100 km flat equivalent
@@ -68,6 +70,26 @@ const CALC_REFERENCES = [
   { key: "half",     label: "Полумаратон",            timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
   { key: "marathon", label: "Маратон",               timeBased: true,  m: "2:00:35",  f: "2:09:56"  },
   { key: "vitosha",  label: "Витоша 100 (~99 км)",  timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
+];
+
+// 5. OTHER NOTABLE ACHIEVEMENTS
+// Fields: discipline (display label), gender ("m" or "f"),
+//         name, result, year, race, url (optional)
+// Add rows freely — they render in the order listed.
+const OTHER_ACHIEVEMENTS = [
+  { discipline: "Комрадс", gender: "m", name: "Огнян Михайлов", result: "8:54:57", year: 2018, race: "Comrades Down Run", url: "https://statistik.d-u-v.org/getresultevent.php?event=42195&cat=all&country=BUL&speed=1&aktype=2&Submit.x=24&Submit.y=3" },
+  { discipline: "Комрадс", gender: "f", name: "Евелина Александрова", result: "10:43:13", year: 2018, race: "Comrades Up Run", url: "https://statistik.d-u-v.org/getresultevent.php?event=22760&cat=all&country=BUL&speed=1&aktype=2&Submit.x=11&Submit.y=6" },
+  { discipline: "Спартатлон", gender: "m", name: "Руско Кадиев", result: "24:08:13", year: 1992, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresultevent.php?event=5676" },
+  { discipline: "Витоша 100", gender: "m", name: "Христо Цветков", result: "6:56:40", year: 2025, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresultperson.php?runner=694803" },
+  { discipline: "Витоша 100", gender: "f", name: "Мария Николова", result: "8:56:39", year: 2024, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresultevent.php?event=104199" },
+  { discipline: "Уестърн Стейтс", gender: "m", name: "Иван Димитров", result: "23:44:40", year: 2022, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=109409&cat=all&year=all&country=BUL&length=all&Submit.x=1&Submit.y=10" },
+  { discipline: "УТМБ", gender: "m", name: "Димитър Маринов", result: "29:24:34", year: 2022, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=90247&cat=M&year=all&country=BUL&length=all&Submit.x=17&Submit.y=7" },
+  { discipline: "УТМБ", gender: "f", name: "Мария Николова", result: "27:23:20", year: 2018, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=90247&cat=W&year=all&country=BUL&length=all&Submit.x=25&Submit.y=5" },
+  { discipline: "Ком - Емине", gender: "m", name: "Божидар Антонов", result: "4д 8:27", year: 2018, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
+  { discipline: "Ком - Емине", gender: "f", name: "Мария Николова", result: "5д 16:43", year: 2020, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
+  { discipline: "3100 Мили", gender: "m", name: "Шопан Цеков", result: "50д 13:48:57", year: 2006, race: "Self-Transcendence 3100", url: "https://statistik.d-u-v.org/getresultevent.php?event=536" },
+  { discipline: "Айрънмен", gender: "m", name: "Иван Гръблев", result: "9:02:42", year: 2024, race: "Ironman Italy", url: "https://statistik.d-u-v.org/getresultevent.php?event=42195&cat=all&country=BUL&speed=1&aktype=2&Submit.x=24&Submit.y=3" },
+  { discipline: "Айрънмен", gender: "f", name: "Деница Зайкова", result: "11:30:17", year: 2024, race: "Ironman Spain", url: "https://statistik.d-u-v.org/getresultevent.php?event=42195&cat=all&country=BUL&speed=1&aktype=2&Submit.x=24&Submit.y=3" },
 ];
 
 // 3. ATHLETE ENTRIES
@@ -830,13 +852,14 @@ document.addEventListener('DOMContentLoaded', function() {
    ═══════════════════════════════════════════════════════ */
 const navItems = [
   { id: 'pageRecords',     label: 'Национални Рекорди' },
+  { id: 'pageOthers',      label: 'Други значими постижения' },
   { id: 'pageRankings',    label: 'Ранглисти' },
   { id: 'pageVitosha',     label: 'Витоша 100' },
   { id: 'pageIronman',     label: 'Ironman' },
   { id: 'pageMarathon',    label: 'Маратон' },
   { id: 'pageHalf',        label: 'Полумаратон' },
-  { id: 'pagePerformance',   label: 'Класиране по Резултат' },
-  { id: 'pagePerfCalc',      label: 'Калкулатор' },
+  { id: 'pagePerformance', label: 'Класиране по Резултат' },
+  { id: 'pagePerfCalc',    label: 'Калкулатор' },
 ];
 
 const nav = document.getElementById('mainNav');
@@ -1425,6 +1448,43 @@ function renderRankings(key) {
 })();
 
 /* ═══════════════════════════════════════════════════════
+   OTHERS PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  // Group entries by discipline label, preserving insertion order
+  const grouped = [];
+  const seen = {};
+  OTHER_ACHIEVEMENTS.forEach(e => {
+    if (!seen[e.discipline]) {
+      seen[e.discipline] = true;
+      grouped.push(e.discipline);
+    }
+  });
+
+  const tbody = document.getElementById('othersTableBody');
+
+  grouped.forEach(disc => {
+    const mRec = OTHER_ACHIEVEMENTS.find(e => e.discipline === disc && e.gender === 'm') || null;
+    const fRec = OTHER_ACHIEVEMENTS.find(e => e.discipline === disc && e.gender === 'f') || null;
+
+    function cell(rec) {
+      if (!rec) return `<td class="rec-name rec-empty" colspan="3">—</td>`;
+      return `
+        <td class="rec-name">${rec.name}</td>
+        <td class="rec-result">${rec.result}</td>
+        <td class="rec-meta">${raceLink(rec.race, rec.url)} · ${rec.year}</td>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="rec-discipline">${disc}</td>
+      ${cell(mRec)}
+      ${cell(fRec)}`;
+    tbody.appendChild(tr);
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════
    PERFORMANCE RANKING PAGE
    ═══════════════════════════════════════════════════════ */
 (function() {
@@ -1442,7 +1502,7 @@ function renderRankings(key) {
   }
 
   // For each of the 4 categories, get top 20 entries and score against the world record baseline.
-  // The WORLD_RECORDS values (mm, fm, mhm, fhm) are the "avg top 10" reference times.
+  // The AVG_TOP_10 values (mm, fm, mhm, fhm) are the "avg top 10" reference times.
   // Formula: gap% = (result - wrSec) / wrSec * 100  → how many % slower than WR
   //          score = 100 - gap%
   // WR itself = 100%, anything slower = below 100%.
@@ -1462,7 +1522,7 @@ function renderRankings(key) {
 
   let allRows = [];
   categories.forEach(cat => {
-    const wrSec = toSec(WORLD_RECORDS[cat.wrKey]);
+    const wrSec = toSec(AVG_TOP_10[cat.wrKey]);
     const entries = getCategoryData(cat);
     entries.forEach(e => {
       const sec = toSec(e.result);
@@ -1497,16 +1557,20 @@ function renderRankings(key) {
   }
 
   const equivOptions = [
-    { key: 'mm',  label: '♂ Маратон' },
-    { key: 'fm',  label: '♀ Маратон' },
-    { key: 'mhm', label: '♂ Полумаратон' },
-    { key: 'fhm', label: '♀ Полумаратон' },
+    { key: 'mm',   label: '♂ Маратон' },
+    { key: 'fm',   label: '♀ Маратон' },
+    { key: 'mhm',  label: '♂ Полумаратон' },
+    { key: 'fhm',  label: '♀ Полумаратон' },
+    { key: 'm5k',  label: '♂ 5 км' },
+    { key: 'f5k',  label: '♀ 5 км' },
+    { key: 'm10k', label: '♂ 10 км' },
+    { key: 'f10k', label: '♀ 10 км' },
   ];
 
   // Render the table, computing equivalent time from selected WR key
   function renderPerfTable(equivKey) {
-    const equivWrSec = toSec(WORLD_RECORDS[equivKey]);
-    const isMaleEquiv = equivKey === 'mm' || equivKey === 'mhm';
+    const equivWrSec = toSec(AVG_TOP_10[equivKey]);
+    const isMaleEquiv = equivKey === 'mm' || equivKey === 'mhm' || equivKey === 'm5k' || equivKey === 'm10k';
     const equivGenderClass = isMaleEquiv ? 'perf-equiv-male' : 'perf-equiv-female';
 
     const rows = allRows.map((r, i) => {
@@ -1534,7 +1598,7 @@ function renderRankings(key) {
     { label: '♀ Маратон',     key: 'fm'  },
     { label: '♂ Полумаратон', key: 'mhm' },
     { label: '♀ Полумаратон', key: 'fhm' },
-  ].map(w => `<tr><td>${w.label}</td><td class="rank-result">${WORLD_RECORDS[w.key]}</td></tr>`).join('');
+  ].map(w => `<tr><td>${w.label}</td><td class="rank-result">${AVG_TOP_10[w.key]}</td></tr>`).join('');
 
   document.getElementById('perfTableWrap').innerHTML = `
     <table class="perf-table">
@@ -1565,7 +1629,7 @@ function renderRankings(key) {
   function onEquivChange() {
     const key = sel.value;
     const opt = equivOptions.find(o => o.key === key);
-    const isMale = key === 'mm' || key === 'mhm';
+    const isMale = key === 'mm' || key === 'mhm' || key === 'm5k' || key === 'm10k';
     const head = document.getElementById('perfEquivHead');
     head.textContent = opt.label;
     head.className = 'rank-equiv-head ' + (isMale ? 'perf-equiv-male' : 'perf-equiv-female');
@@ -2827,6 +2891,35 @@ function renderRankings(key) {
   </div>
 </div>
 </footer>
+
+<div id="pageOthers" class="page">
+  <div class="records-intro">
+    <h2>Други значими постижения</h2>
+  </div>
+  <div class="records-table-wrap">
+    <table class="records-table">
+      <thead>
+        <tr class="col-group-header">
+          <th class="discipline-col">—</th>
+          <th class="male-header" colspan="3">♂ Мъже</th>
+          <th class="female-header" colspan="3">♀ Жени</th>
+        </tr>
+        <tr class="sub-header">
+          <th class="disc-sub">Дисциплина</th>
+          <th>Спортист</th>
+          <th>Резултат</th>
+          <th class="male-sub-last">Място · Година</th>
+          <th>Спортистка</th>
+          <th>Резултат</th>
+          <th>Място · Година</th>
+        </tr>
+      </thead>
+      <tbody id="othersTableBody">
+        <!-- populated by JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <div id="pagePerformance" class="page">
   <div class="ironman-header">
