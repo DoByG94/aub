@@ -56,6 +56,7 @@ const AVG_TOP_10 = {
 // Marathon → half marathon equivalent
 const DISTANCE_FACTORS = {
   "vitosha":  0.9350,
+  "vitosha-old": 1.1022,
   "marathon": 0.4740,
   "half":     2.1096,
 };
@@ -354,132 +355,129 @@ const ENTRIES = [
   {category:"half", gender:"f", name:"Христина Козарева", result:"1:24:45", year:2017, race:"Стара Загора"},
 
   // ── 99 КМ ──────────────────────────────────
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"6:56:40", year:2025},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:39:54", year:2023},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:45:34", year:2022},
-  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"7:45:40", year:2025},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"7:52:01", year:2024},
-  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"8:04:52", year:2024},
-  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"8:05:55", year:2024},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"8:07:23", year:2021},
-  {category:"vitosha", gender:"m", name:"Александър Спасов", result:"8:12:06", year:2018},
-  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:18:20", year:2020},
-  {category:"vitosha", gender:"m", name:"Николай Стойчев", result:"8:23:58", year:2025},
-  {category:"vitosha", gender:"m", name:"Александър Христов", result:"8:28:09", year:2024},
-  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:29:35", year:2023},
-  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:30:17", year:2018},
-  {category:"vitosha", gender:"m", name:"Даниел Кубашлиев", result:"8:33:11", year:2023},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"8:34:05", year:2019},
-  {category:"vitosha", gender:"m", name:"Антон Кадиев", result:"8:35:08", year:2025},
-  {category:"vitosha", gender:"m", name:"Атанас Парашкевов", result:"8:37:39", year:2025},
-  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"8:38:02", year:2024},
-  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"8:38:27", year:2022},
-  {category:"vitosha", gender:"m", name:"Христо Минков", result:"8:39:07", year:2025},
-  {category:"vitosha", gender:"m", name:"Владимир Ставрев", result:"8:42:04", year:2019},
-  {category:"vitosha", gender:"m", name:"Андриан Кърпаров", result:"8:42:58", year:2025},
-  {category:"vitosha", gender:"m", name:"Андрей Гридин", result:"8:43:21", year:2017},
-  {category:"vitosha", gender:"m", name:"Тодор Цанков", result:"8:43:46", year:2018},
-  {category:"vitosha", gender:"m", name:"Ивайло Атанасов", result:"8:48:04", year:2017},
-  {category:"vitosha", gender:"m", name:"Никола Кондарев", result:"8:51:06", year:2025},
-  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"8:53:31", year:2023},
-  {category:"vitosha", gender:"m", name:"Любомир Тодоров", result:"8:54:48", year:2018},
-  {category:"vitosha", gender:"m", name:"Георги Добрев", result:"8:55:38", year:2025},
-  {category:"vitosha", gender:"m", name:"Любомир Тодоров", result:"8:55:51", year:2019},
-  {category:"vitosha", gender:"m", name:"Даниел Кубашлиев", result:"8:55:57", year:2022},
-  {category:"vitosha", gender:"m", name:"Александър Спасов", result:"8:56:22", year:2021},
-  {category:"vitosha", gender:"m", name:"Росен Русев", result:"8:57:07", year:2019},
-  {category:"vitosha", gender:"m", name:"Андриан Кърпаров", result:"8:57:19", year:2024},
-  {category:"vitosha", gender:"m", name:"Калоян Чанев", result:"8:58:10", year:2022},
-  {category:"vitosha", gender:"m", name:"Стефан Иванов", result:"8:58:59", year:2020},
-  {category:"vitosha", gender:"m", name:"Иво Андреев", result:"9:04:40", year:2025},
-  {category:"vitosha", gender:"m", name:"Julien Feutrie", result:"9:05:24", year:2024},
-  {category:"vitosha", gender:"m", name:"Тодор Георгиев", result:"9:05:49", year:2020},
-  {category:"vitosha", gender:"m", name:"Иво Андреев", result:"9:07:00", year:2024},
-  {category:"vitosha", gender:"m", name:"Петко Стефанов", result:"9:07:02", year:2023},
-  {category:"vitosha", gender:"m", name:"Фатих Хюсеин", result:"9:08:48", year:2025},
-  {category:"vitosha", gender:"m", name:"Христо Цветков", result:"9:11:17", year:2018},
-  {category:"vitosha", gender:"m", name:"Христо Минков", result:"9:11:35", year:2021},
-  {category:"vitosha", gender:"m", name:"Росен Русев", result:"9:13:18", year:2021},
-  {category:"vitosha", gender:"m", name:"Самуил Вълчев", result:"9:13:57", year:2023},
-  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:14:03", year:2017},
-  {category:"vitosha", gender:"m", name:"Станимир Димитров", result:"9:14:54", year:2020},
-  {category:"vitosha", gender:"m", name:"Емил Недков", result:"9:15:44", year:2025},
-  {category:"vitosha", gender:"m", name:"Христо Минков", result:"9:15:51", year:2023},
-  {category:"vitosha", gender:"m", name:"Станимир Димитров", result:"9:15:59", year:2018},
-  {category:"vitosha", gender:"m", name:"Румен Костадинов", result:"9:16:32", year:2024},
-  {category:"vitosha", gender:"m", name:"Julien Feutrie", result:"9:17:37", year:2025},
-  {category:"vitosha", gender:"m", name:"Димитър Цанков", result:"9:18:01", year:2023},
-  {category:"vitosha", gender:"m", name:"Стилян Аврамов", result:"9:18:40", year:2022},
-  {category:"vitosha", gender:"m", name:"Димитър Шадура", result:"9:21:19", year:2023},
-  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:21:31", year:2020},
-  {category:"vitosha", gender:"m", name:"Кольо Райчинов", result:"9:21:40", year:2019},
-  {category:"vitosha", gender:"m", name:"Кристиян Кирилов", result:"9:22:15", year:2019},
-  {category:"vitosha", gender:"m", name:"Пламен Пенов", result:"9:22:36", year:2021},
-  {category:"vitosha", gender:"m", name:"Никола Стойчев", result:"9:22:46", year:2025},
-  {category:"vitosha", gender:"m", name:"Васил Гуджев", result:"9:23:04", year:2025},
-  {category:"vitosha", gender:"m", name:"Виктор Методиев", result:"9:25:43", year:2024},
-  {category:"vitosha", gender:"m", name:"Ивайло Хаджиев", result:"9:26:11", year:2019},
-  {category:"vitosha", gender:"m", name:"Константин Атанасов", result:"9:27:23", year:2020},
-  {category:"vitosha", gender:"m", name:"Калоян Чанев", result:"9:27:35", year:2024},
-  {category:"vitosha", gender:"m", name:"Иван Гочев", result:"9:28:52", year:2018},
-  {category:"vitosha", gender:"m", name:"Кольо Райчинов", result:"9:29:04", year:2021},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"6:56:40", year:2025},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"7:39:54", year:2023},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"7:45:34", year:2022},
+  {category:"vitosha", gender:"m", rank:"2", name:"Димитър Шадура", result:"7:45:40", year:2025},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"7:52:01", year:2024},
+  {category:"vitosha", gender:"m", rank:"2", name:"Димитър Шадура", result:"8:04:52", year:2024},
+  {category:"vitosha", gender:"m", rank:"3", name:"Пламен Пенов", result:"8:05:55", year:2024},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"8:07:23", year:2021},
+  {category:"vitosha", gender:"m", rank:"1", name:"Александър Спасов", result:"8:12:06", year:2018},
+  {category:"vitosha", gender:"m", rank:"1", name:"Ивайло Атанасов", result:"8:18:20", year:2020},
+  {category:"vitosha", gender:"m", rank:"3", name:"Николай Стойчев", result:"8:23:58", year:2025},
+  {category:"vitosha", gender:"m", rank:"4", name:"Александър Христов", result:"8:28:09", year:2024},
+  {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:29:35", year:2023},
+  {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:30:17", year:2018},
+  {category:"vitosha", gender:"m", rank:"3", name:"Даниел Кубашлиев", result:"8:33:11", year:2023},
+  {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"8:34:05", year:2019},
+  {category:"vitosha", gender:"m", rank:"4", name:"Антон Кадиев", result:"8:35:08", year:2025},
+  {category:"vitosha", gender:"m", rank:"5", name:"Атанас Парашкевов", result:"8:37:39", year:2025},
+  {category:"vitosha", gender:"m", rank:"5", name:"Стилян Аврамов", result:"8:38:02", year:2024},
+  {category:"vitosha", gender:"m", rank:"2", name:"Пламен Пенов", result:"8:38:27", year:2022},
+  {category:"vitosha", gender:"m", rank:"6", name:"Христо Минков", result:"8:39:07", year:2025},
+  {category:"vitosha", gender:"m", rank:"2", name:"Владимир Ставрев", result:"8:42:04", year:2019},
+  {category:"vitosha", gender:"m", rank:"7", name:"Андриан Кърпаров", result:"8:42:58", year:2025},
+  {category:"vitosha", gender:"m", rank:"1", name:"Андрей Гридин", result:"8:43:21", year:2017},
+  {category:"vitosha", gender:"m", rank:"3", name:"Тодор Цанков", result:"8:43:46", year:2018},
+  {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:48:04", year:2017},
+  {category:"vitosha", gender:"m", rank:"8", name:"Никола Кондарев", result:"8:51:06", year:2025},
+  {category:"vitosha", gender:"m", rank:"4", name:"Стилян Аврамов", result:"8:53:31", year:2023},
+  {category:"vitosha", gender:"m", rank:"4", name:"Любомир Тодоров", result:"8:54:48", year:2018},
+  {category:"vitosha", gender:"m", rank:"9", name:"Георги Добрев", result:"8:55:38", year:2025},
+  {category:"vitosha", gender:"m", rank:"3", name:"Любомир Тодоров", result:"8:55:51", year:2019},
+  {category:"vitosha", gender:"m", rank:"3", name:"Даниел Кубашлиев", result:"8:55:57", year:2022},
+  {category:"vitosha", gender:"m", rank:"2", name:"Александър Спасов", result:"8:56:22", year:2021},
+  {category:"vitosha", gender:"m", rank:"4", name:"Росен Русев", result:"8:57:07", year:2019},
+  {category:"vitosha", gender:"m", rank:"8", name:"Андриан Кърпаров", result:"8:57:19", year:2024},
+  {category:"vitosha", gender:"m", rank:"4", name:"Калоян Чанев", result:"8:58:10", year:2022},
+  {category:"vitosha", gender:"m", rank:"2", name:"Стефан Иванов", result:"8:58:59", year:2020},
+  {category:"vitosha", gender:"m", rank:"10", name:"Иво Андреев", result:"9:04:40", year:2025},
+  {category:"vitosha", gender:"m", rank:"10", name:"Julien Feutrie", result:"9:05:24", year:2024},
+  {category:"vitosha", gender:"m", rank:"3", name:"Тодор Георгиев", result:"9:05:49", year:2020},
+  {category:"vitosha", gender:"m", rank:"11", name:"Иво Андреев", result:"9:07:00", year:2024},
+  {category:"vitosha", gender:"m", rank:"5", name:"Петко Стефанов", result:"9:07:02", year:2023},
+  {category:"vitosha", gender:"m", rank:"11", name:"Фатих Хюсеин", result:"9:08:48", year:2025},
+  {category:"vitosha", gender:"m", rank:"5", name:"Христо Цветков", result:"9:11:17", year:2018},
+  {category:"vitosha", gender:"m", rank:"3", name:"Христо Минков", result:"9:11:35", year:2021},
+  {category:"vitosha", gender:"m", rank:"4", name:"Росен Русев", result:"9:13:18", year:2021},
+  {category:"vitosha", gender:"m", rank:"6", name:"Самуил Вълчев", result:"9:13:57", year:2023},
+  {category:"vitosha", gender:"m", rank:"3", name:"Ивайло Хаджиев", result:"9:14:03", year:2017},
+  {category:"vitosha", gender:"m", rank:"4", name:"Станимир Димитров", result:"9:14:54", year:2020},
+  {category:"vitosha", gender:"m", rank:"13", name:"Емил Недков", result:"9:15:44", year:2025},
+  {category:"vitosha", gender:"m", rank:"7", name:"Христо Минков", result:"9:15:51", year:2023},
+  {category:"vitosha", gender:"m", rank:"6", name:"Станимир Димитров", result:"9:15:59", year:2018},
+  {category:"vitosha", gender:"m", rank:"12", name:"Румен Костадинов", result:"9:16:32", year:2024},
+  {category:"vitosha", gender:"m", rank:"14", name:"Julien Feutrie", result:"9:17:37", year:2025},
+  {category:"vitosha", gender:"m", rank:"8", name:"Димитър Цанков", result:"9:18:01", year:2023},
+  {category:"vitosha", gender:"m", rank:"6", name:"Стилян Аврамов", result:"9:18:40", year:2022},
+  {category:"vitosha", gender:"m", rank:"9", name:"Димитър Шадура", result:"9:21:19", year:2023},
+  {category:"vitosha", gender:"m", rank:"6", name:"Ивайло Хаджиев", result:"9:21:31", year:2020},
+  {category:"vitosha", gender:"m", rank:"5", name:"Кольо Райчинов", result:"9:21:40", year:2019},
+  {category:"vitosha", gender:"m", rank:"6", name:"Кристиян Кирилов", result:"9:22:15", year:2019},
+  {category:"vitosha", gender:"m", rank:"5", name:"Пламен Пенов", result:"9:22:36", year:2021},
+  {category:"vitosha", gender:"m", rank:"16", name:"Никола Стойчев", result:"9:22:46", year:2025},
+  {category:"vitosha", gender:"m", rank:"17", name:"Васил Гуджев", result:"9:23:04", year:2025},
+  {category:"vitosha", gender:"m", rank:"13", name:"Виктор Методиев", result:"9:25:43", year:2024},
+  {category:"vitosha", gender:"m", rank:"7", name:"Ивайло Хаджиев", result:"9:26:11", year:2019},
+  {category:"vitosha", gender:"m", rank:"7", name:"Константин Атанасов", result:"9:27:23", year:2020},
+  {category:"vitosha", gender:"m", rank:"14", name:"Калоян Чанев", result:"9:27:35", year:2024},
+  {category:"vitosha", gender:"m", rank:"7", name:"Иван Гочев", result:"9:28:52", year:2018},
+  {category:"vitosha", gender:"m", rank:"6", name:"Кольо Райчинов", result:"9:29:04", year:2021},
 
-  {category:"vitosha", gender:"f", name:"Мария Николова", result:"8:56:39", year:2024},
-  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"8:57:10", year:2024},
-  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"8:57:35", year:2024},
-  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:13:21", year:2025},
-  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:17:32", year:2020},
-  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:19:35", year:2022},
-  {category:"vitosha", gender:"f", name:"Полина Горасова", result:"9:19:39", year:2025},
-  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:24:22", year:2022},
-  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"9:32:22", year:2023},
-  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:37:40", year:2021},
-  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:37:44", year:2018},
-  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"9:39:08", year:2020},
-  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:41:15", year:2019},
-  {category:"vitosha", gender:"f", name:"Полина Горасова", result:"9:49:10", year:2024},
-  {category:"vitosha", gender:"f", name:"Мария Николова", result:"9:49:13", year:2017},
-  {category:"vitosha", gender:"f", name:"Надежда Ангелова", result:"10:00:15", year:2018},
-  {category:"vitosha", gender:"f", name:"Антония Георгиева", result:"10:02:48", year:2024},
-  {category:"vitosha", gender:"f", name:"Моника Филипова", result:"10:19:14", year:2019},
-  {category:"vitosha", gender:"f", name:"Нели Петкова", result:"10:28:53", year:2025},
+  {category:"vitosha", gender:"f", rank:"1 (6)", name:"Мария Николова", result:"8:56:39", year:2024},
+  {category:"vitosha", gender:"f", rank:"2 (7)", name:"Моника Филипова", result:"8:57:10", year:2024},
+  {category:"vitosha", gender:"f", rank:"3 (9)", name:"Надежда Ангелова", result:"8:57:35", year:2024},
+  {category:"vitosha", gender:"f", rank:"1 (12)", name:"Моника Филипова", result:"9:13:21", year:2025},
+  {category:"vitosha", gender:"f", rank:"1 (5)", name:"Мария Николова", result:"9:17:32", year:2020},
+  {category:"vitosha", gender:"f", rank:"1 (6)", name:"Надежда Ангелова", result:"9:19:35", year:2022},
+  {category:"vitosha", gender:"f", rank:"2 (15)", name:"Полина Горасова", result:"9:19:39", year:2025},
+  {category:"vitosha", gender:"f", rank:"2 (7)", name:"Моника Филипова", result:"9:24:22", year:2022},
+  {category:"vitosha", gender:"f", rank:"1 (10)", name:"Моника Филипова", result:"9:32:22", year:2023},
+  {category:"vitosha", gender:"f", rank:"1 (7)", name:"Надежда Ангелова", result:"9:37:40", year:2021},
+  {category:"vitosha", gender:"f", rank:"1 (9)", name:"Мария Николова", result:"9:37:44", year:2018},
+  {category:"vitosha", gender:"f", rank:"2 (8)", name:"Надежда Ангелова", result:"9:39:08", year:2020},
+  {category:"vitosha", gender:"f", rank:"1 (10)", name:"Мария Николова", result:"9:41:15", year:2019},
+  {category:"vitosha", gender:"f", rank:"4 (25)", name:"Полина Горасова", result:"9:49:10", year:2024},
+  {category:"vitosha", gender:"f", rank:"1 (6)", name:"Мария Николова", result:"9:49:13", year:2017},
+  {category:"vitosha", gender:"f", rank:"2 (13)", name:"Надежда Ангелова", result:"10:00:15", year:2018},
+  {category:"vitosha", gender:"f", rank:"5 (29)", name:"Антония Георгиева", result:"10:02:48", year:2024},
+  {category:"vitosha", gender:"f", rank:"2 (16)", name:"Моника Филипова", result:"10:19:14", year:2019},
+  {category:"vitosha", gender:"f", rank:"3 (37)", name:"Нели Петкова", result:"10:28:53", year:2025},
+  {category:"vitosha", gender:"f", rank:"2 (11)", name:"Елеонора Григорова", result:"10:39:51", year:2017},
+  {category:"vitosha", gender:"f", rank:"3 (14)", name:"Моника Филипова", result:"10:40:43", year:2020},
 
   // ── Vitosha (old) ──────────────────────────────────
-  {category:"vitosha-old", gender:"m", name:"Кирил Николов", result:"7:39:40", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Андрей Гридин", result:"8:06:29", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Gancho Slavov", result:"8:19:54", year:2013},
-  {category:"vitosha-old", gender:"m", name:"Ивайло Атанасов", result:"8:24:52", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Ruslan Palazov", result:"8:29:03", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Ивайло Хаджиев", result:"8:32:57", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Simeon Nachev", result:"8:43:34", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Gancho Slavov", result:"8:44:00", year:2012},
-  {category:"vitosha-old", gender:"m", name:"Atanas Kateliev", result:"8:45:26", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Константин Атанасов", result:"8:48:56", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Milen Balabanov", result:"8:49:41", year:2013},
-  {category:"vitosha-old", gender:"m", name:"Aleksandar Dimov", result:"8:50:28", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Plamen Cukev", result:"8:50:47", year:2013},
-  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"8:55:57", year:2013},
-  {category:"vitosha-old", gender:"m", name:"Iliya Kutsarov", result:"8:57:20", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Milen Balabanov", result:"8:59:23", year:2014},
-  {category:"vitosha-old", gender:"m", name:"Slavi Asenov", result:"8:59:38", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Martin Kiritsov", result:"9:00:39", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Dimitar Davidov", result:"9:02:00", year:2012},
-  {category:"vitosha-old", gender:"m", name:"Boyan Rashev", result:"9:08:10", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Kalin Vasilev", result:"9:08:20", year:2015},
-  {category:"vitosha-old", gender:"m", name:"Zlatko Kamenarov", result:"9:13:01", year:2014},
-  {category:"vitosha-old", gender:"m", name:"Valentin Kirov", result:"9:13:55", year:2014},
-  {category:"vitosha-old", gender:"m", name:"Plamen Ivanov", result:"9:15:09", year:2013},
-  {category:"vitosha-old", gender:"m", name:"Plamen Tsukev", result:"9:22:00", year:2012},
-  {category:"vitosha-old", gender:"m", name:"Iliya Kutsarov", result:"9:23:00", year:2012},
-  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"9:24:00", year:2012},
-  {category:"vitosha-old", gender:"m", name:"Bozhidar Antonov", result:"9:24:09", year:2014},
-  {category:"vitosha-old", gender:"m", name:"Velislav Jordanov", result:"9:25:35", year:2016},
-  {category:"vitosha-old", gender:"m", name:"Toni Petkov", result:"9:27:44", year:2013},
+  {category:"vitosha-old", gender:"m", rank:"X", name:"Кирил Николов", result:"7:39:40", year:2016},
+  {category:"vitosha-old", gender:"m", rank:"1", name:"Андрей Гридин", result:"8:06:29", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"1", name:"Ганчо Славов", result:"8:19:54", year:2013},
+  {category:"vitosha-old", gender:"m", rank:"1", name:"Ивайло Атанасов", result:"8:24:52", year:2016},
+  {category:"vitosha-old", gender:"m", rank:"2", name:"Руслан Палазов", result:"8:29:03", year:2016},
+  {category:"vitosha-old", gender:"m", rank:"3", name:"Ивайло Хаджиев", result:"8:32:57", year:2016},
+  {category:"vitosha-old", gender:"m", rank:"2", name:"Симеон Начев", result:"8:43:34", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"1", name:"Ганчо Славов", result:"8:44:00", year:2012},
+  {category:"vitosha-old", gender:"m", rank:"3", name:"Атанас Каталиев", result:"8:45:26", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"4", name:"Константин Атанасов", result:"8:48:56", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"2", name:"Милен Балабанов", result:"8:49:41", year:2013},
+  {category:"vitosha-old", gender:"m", rank:"4", name:"Александър Димов", result:"8:50:28", year:2016},
+  {category:"vitosha-old", gender:"m", rank:"3", name:"Пламен Цукев", result:"8:50:47", year:2013},
+  {category:"vitosha-old", gender:"m", rank:"4", name:"Божидар Антонов", result:"8:55:57", year:2013},
+  {category:"vitosha-old", gender:"m", rank:"5", name:"Илия Куцаров", result:"8:57:20", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"1", name:"Милен Балабанов", result:"8:59:23", year:2014},
+  {category:"vitosha-old", gender:"m", rank:"6", name:"Слави Асенов", result:"8:59:38", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"7", name:"Мартин Кирицов", result:"9:00:39", year:2015},
+  {category:"vitosha-old", gender:"m", rank:"2", name:"Димитър Давидов", result:"9:02:00", year:2012},
 
-  {category:"vitosha-old", gender:"f", name:"Моника Филипова", result:"9:09:51", year:2015},
-  {category:"vitosha-old", gender:"f", name:"Мария Николова", result:"9:24:42", year:2015},
-  {category:"vitosha-old", gender:"f", name:"Nina Encheva", result:"9:25:20", year:2015},
-  {category:"vitosha-old", gender:"f", name:"Antonia Grigorova", result:"9:25:56", year:2016},
+  {category:"vitosha-old", gender:"f", rank:"1 (9)", name:"Моника Филипова", result:"9:09:51", year:2015},
+  {category:"vitosha-old", gender:"f", rank:"2 (10)", name:"Мария Николова", result:"9:24:42", year:2015},
+  {category:"vitosha-old", gender:"f", rank:"3 (11)", name:"Нина Енчева", result:"9:25:20", year:2015},
+  {category:"vitosha-old", gender:"f", rank:"1 (7)", name:"Антония Григорова", result:"9:25:56", year:2016},
+  {category:"vitosha-old", gender:"f", rank:"4 (14)", name:"Антония Григорова", result:"9:39:31", year:2015},
+  {category:"vitosha-old", gender:"f", rank:"2 (13)", name:"Мария Николова", result:"9:43:30", year:2016},
+  {category:"vitosha-old", gender:"f", rank:"3 (16)", name:"Надежда Ангелова", result:"9:47:32", year:2016},
+  {category:"vitosha-old", gender:"f", rank:"1 (9)", name:"Мария Николова", result:"9:51:24", year:2013},
+  {category:"vitosha-old", gender:"f", rank:"1 (8)", name:"Мария Николова", result:"9:54:53", year:2014},
+  {category:"vitosha-old", gender:"f", rank:"4 (20)", name:"Тоня Цветкова", result:"9:58:55", year:2016},
 ];
 
   // ── Vitosha (old) ──────────────────────────────────
@@ -773,7 +771,7 @@ const IRONMAN_ENTRIES = [
   { firstName: "Asen", lastName: "Dapev", gender: "m", ageGroup: "30-34", swim: "01:26:24", bike: "05:58:24", run: "05:00:13", transitions: "00:16:51", total: "12:41:52", event: "Sweden", year: 2025},
   { firstName: "Stanimir", lastName: "Statev", gender: "m", ageGroup: "45-49", swim: "02:16:14", bike: "06:51:41", run: "05:05:56", transitions: "00:13:52", total: "14:27:43", event: "Sweden", year: 2025},
   { firstName: "Gabriela", lastName: "Belleva", gender: "f", ageGroup: "25-29", swim: "01:18:46", bike: "07:53:47", run: "05:42:52", transitions: "00:14:55", total: "15:10:20", event: "Sweden", year: 2025},
-  { firstName: "Emil", lastName: "Stoynev", gender: "m", ageGroup: "3-34", swim: "12:58:36", bike: "04:36:32", run: "03:38:11", transitions: "00:11:45", total: "09:25:04", event: "Portugal", year: 2025},
+  { firstName: "Emil", lastName: "Stoynev", gender: "m", ageGroup: "30-34", swim: "12:58:36", bike: "04:36:32", run: "03:38:11", transitions: "00:11:45", total: "09:25:04", event: "Portugal", year: 2025},
   { firstName: "Petar", lastName: "Hristov", gender: "m", ageGroup: "35-39", swim: "01:35:20", bike: "06:05:36", run: "03:18:22", transitions: "00:19:58", total: "11:19:16", event: "Portugal", year: 2025},
   { firstName: "Vilian", lastName: "Dyankov", gender: "m", ageGroup: "25-29", swim: "02:10:42", bike: "06:49:18", run: "04:17:18", transitions: "00:16:55", total: "13:34:13", event: "Portugal", year: 2025},
   { firstName: "Julian", lastName: "Dimov", gender: "m", ageGroup: "50-54", swim: "01:26:49", bike: "07:01:55", run: "04:58:19", transitions: "00:33:42", total: "14:00:45", event: "Portugal", year: 2025},
@@ -855,6 +853,7 @@ const navItems = [
   { id: 'pageOthers',      label: 'Други значими постижения' },
   { id: 'pageRankings',    label: 'Ранглисти' },
   { id: 'pageVitosha',     label: 'Витоша 100' },
+  { id: 'pageVitoshaOld', label: 'Витоша 100 (90 км)' },
   { id: 'pageIronman',     label: 'Ironman' },
   { id: 'pageMarathon',    label: 'Маратон' },
   { id: 'pageHalf',        label: 'Полумаратон' },
@@ -1290,6 +1289,7 @@ function renderRankings(key) {
         <td class="rank-name">${e.name}</td>
         <td class="rank-result">${e.result}</td>
         <td class="rank-year">${e.year}</td>
+        <td class="rank-year">${e.rank}</td>
         ${isMale   ? `<td class="rank-equiv">${calcDistanceEquivalent(e.result, dFactor)}</td>` : ''}
         ${isFemale ? `<td class="rank-equiv">${calcEquivalent(e.result, gFactor)}</td>` : ''}
       </tr>`).join('');
@@ -1301,7 +1301,8 @@ function renderRankings(key) {
             <th>Спортист</th>
             <th>Резултат</th>
             <th>Година</th>
-            ${isMale   ? `<th class="rank-equiv-head">Екв. 100 км</th>` : ''}
+            <th>Позиция</th>
+            ${isMale   ? `<th class="rank-equiv-head">Еквивалент (Шосе)</th>` : ''}
             ${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}
           </tr>
         </thead>
@@ -1337,6 +1338,87 @@ function renderRankings(key) {
   bestOnlyV.addEventListener('change', renderVitosha);
   renderVitosha();
 })();
+
+/* ═══════════════════════════════════════════════════════
+   VITOSHA 100 (90 КМ) PAGE
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const vSearchBox  = document.getElementById('vitoshaOldSearch');
+  const vMaleWrap   = document.getElementById('voMaleWrap');
+  const vFemaleWrap = document.getElementById('voFemaleWrap');
+  const bestOnlyV   = document.getElementById('voBestOnly');
+
+  function toSec(t) {
+    const parts = t.split(':').map(Number);
+    if (parts.some(isNaN)) return Infinity;
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  function buildVitoshaTable(entries, gender) {
+    if (entries.length === 0) {
+      return `<div class="empty-state">Няма въведени резултати.</div>`;
+    }
+    const isMale = gender === 'm';
+    const isFemale = gender === 'f';
+    const gFactor = 1/DISTANCE_FACTORS['vitosha-old'];
+    const dFactor = DISTANCE_FACTORS['vitosha-old'];
+    const rows = entries.map((e, i) => `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${e.name}</td>
+        <td class="rank-result">${e.result}</td>
+        <td class="rank-year">${e.year}</td>
+        <td class="rank-year">${e.rank}</td>
+        ${isMale   ? `<td class="rank-equiv">${calcDistanceEquivalent(e.result, dFactor)}</td>` : ''}
+        ${isFemale ? `<td class="rank-equiv">${calcEquivalent(e.result, gFactor)}</td>` : ''}
+      </tr>`).join('');
+    return `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Спортист</th>
+            <th>Резултат</th>
+            <th>Година</th>
+            <th>Позиция</th>
+            ${isMale   ? `<th class="rank-equiv-head">Екв. Ново Трасе</th>` : ''}
+            ${isFemale ? `<th class="rank-equiv-head">Екв. Ново Трасе</th>` : ''}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderVitoshaOld() {
+    const q = vSearchBox.value.trim().toLowerCase();
+    const all = ENTRIES.filter(e => e.category === 'vitosha-old')
+      .sort((a, b) => toSec(a.result) - toSec(b.result));
+
+    function applyBest(entries) {
+      if (!bestOnlyV.checked) return entries;
+      const seen = new Set();
+      return entries.filter(e => {
+        if (seen.has(e.name)) return false;
+        seen.add(e.name);
+        return true;
+      });
+    }
+
+    function applySearch(entries) {
+      if (!q) return entries;
+      return entries.filter(e => e.name.toLowerCase().includes(q));
+    }
+
+    vMaleWrap.innerHTML   = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'm'))), 'm');
+    vFemaleWrap.innerHTML = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'f'))), 'f');
+  }
+
+  vSearchBox.addEventListener('input', renderVitoshaOld);
+  bestOnlyV.addEventListener('change', renderVitoshaOld);
+  renderVitoshaOld();
+})();
+
+
 
 
 /* ═══════════════════════════════════════════════════════
@@ -1507,10 +1589,10 @@ function renderRankings(key) {
   //          score = 100 - gap%
   // WR itself = 100%, anything slower = below 100%.
   const categories = [
-    { key: 'marathon', gender: 'm', wrKey: 'mm',  label: '♂ Маратон' },
-    { key: 'marathon', gender: 'f', wrKey: 'fm',  label: '♀ Маратон' },
-    { key: 'half',     gender: 'm', wrKey: 'mhm', label: '♂ Полумаратон' },
-    { key: 'half',     gender: 'f', wrKey: 'fhm', label: '♀ Полумаратон' },
+    { key: 'marathon', gender: 'm', wrKey: 'mm',  label: '<span class="cat-male">Маратон</span>' },
+    { key: 'marathon', gender: 'f', wrKey: 'fm',  label: '<span class="cat-female">Маратон</span>' },
+    { key: 'half',     gender: 'm', wrKey: 'mhm', label: '<span class="cat-male">Полумаратон</span>' },
+    { key: 'half',     gender: 'f', wrKey: 'fhm', label: '<span class="cat-female">Полумаратон</span>' },
   ];
 
   function getCategoryData(cat) {
@@ -1557,14 +1639,14 @@ function renderRankings(key) {
   }
 
   const equivOptions = [
-    { key: 'mm',   label: '♂ Маратон' },
-    { key: 'fm',   label: '♀ Маратон' },
-    { key: 'mhm',  label: '♂ Полумаратон' },
-    { key: 'fhm',  label: '♀ Полумаратон' },
-    { key: 'm5k',  label: '♂ 5 км' },
-    { key: 'f5k',  label: '♀ 5 км' },
-    { key: 'm10k', label: '♂ 10 км' },
-    { key: 'f10k', label: '♀ 10 км' },
+    { key: 'mm',   label: 'Маратон (М)',     isMale: true  },
+    { key: 'fm',   label: 'Маратон (Ж)',     isMale: false },
+    { key: 'mhm',  label: 'Полумаратон (М)', isMale: true  },
+    { key: 'fhm',  label: 'Полумаратон (Ж)', isMale: false },
+    { key: 'm10k', label: '10 км (М)',  isMale: true  },
+    { key: 'f10k', label: '10 км (Ж)', isMale: false },
+    { key: 'm5k',  label: '5 км (М)',   isMale: true  },
+    { key: 'f5k',  label: '5 км (Ж)',   isMale: false },
   ];
 
   // Render the table, computing equivalent time from selected WR key
@@ -1592,12 +1674,11 @@ function renderRankings(key) {
     document.getElementById('perfTbody').innerHTML = rows;
   }
 
-  // WR reference table
   const wrRows = [
-    { label: '♂ Маратон',     key: 'mm'  },
-    { label: '♀ Маратон',     key: 'fm'  },
-    { label: '♂ Полумаратон', key: 'mhm' },
-    { label: '♀ Полумаратон', key: 'fhm' },
+    { label: '<span class="cat-male">Маратон</span>',        key: 'mm'  },
+    { label: '<span class="cat-female">Маратон</span>',      key: 'fm'  },
+    { label: '<span class="cat-male">Полумаратон</span>',    key: 'mhm' },
+    { label: '<span class="cat-female">Полумаратон</span>',  key: 'fhm' },
   ].map(w => `<tr><td>${w.label}</td><td class="rank-result">${AVG_TOP_10[w.key]}</td></tr>`).join('');
 
   document.getElementById('perfTableWrap').innerHTML = `
@@ -1623,6 +1704,8 @@ function renderRankings(key) {
     const opt = document.createElement('option');
     opt.value = o.key;
     opt.textContent = o.label;
+    if (o.isMale) opt.style.color = 'var(--male)';
+    else opt.style.color = 'var(--female)';
     sel.appendChild(opt);
   });
 
@@ -1762,6 +1845,9 @@ function renderRankings(key) {
     --male: #4f9cf9;
     --female: #f472b6;
   }
+
+  .cat-male   { color: var(--male); font-weight: 600; }
+  .cat-female { color: var(--female); font-weight: 600; }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1952,7 +2038,7 @@ function renderRankings(key) {
     color: var(--text-muted);
     background: var(--bg3);
     padding: 0.5rem 1rem;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid var(--border);
     font-weight: 400;
   }
@@ -2773,10 +2859,10 @@ function renderRankings(key) {
         </tr>
         <tr class="sub-header">
           <th class="disc-sub">Дисциплина</th>
-          <th>Спортист</th>
+          <th>Име</th>
           <th>Резултат</th>
           <th class="male-sub-last">Място · Година</th>
-          <th>Спортистка</th>
+          <th>Име</th>
           <th>Резултат</th>
           <th>Място · Година</th>
         </tr>
@@ -2850,6 +2936,27 @@ function renderRankings(key) {
     </div>
   </div>
 </div>
+<div id="pageVitoshaOld" class="page">
+  <div class="ironman-header">
+    <h2>Витоша 100 (90 км) Ранглиста (2005-2016)</h2>
+  </div>
+  <div class="ironman-filters">
+    <label>Търсене:</label>
+    <input class="im-search" id="vitoshaOldSearch" type="text" placeholder="Име…">
+    <div class="im-filter-sep"></div>
+    <label class="im-checkbox-label"><input type="checkbox" id="voBestOnly"> Само най-добър резултат</label>
+  </div>
+  <div class="ironman-tables">
+    <div>
+      <div class="im-table-title male">♂ Мъже</div>
+      <div id="voMaleWrap"></div>
+    </div>
+    <div>
+      <div class="im-table-title female">♀ Жени</div>
+      <div id="voFemaleWrap"></div>
+    </div>
+  </div>
+</div>
 <div id="pageMarathon" class="page">
   <div class="ironman-header">
     <h2>Маратон Ранглиста (2004-2026)</h2>
@@ -2906,10 +3013,10 @@ function renderRankings(key) {
         </tr>
         <tr class="sub-header">
           <th class="disc-sub">Дисциплина</th>
-          <th>Спортист</th>
+          <th>Име</th>
           <th>Резултат</th>
           <th class="male-sub-last">Място · Година</th>
-          <th>Спортистка</th>
+          <th>Име</th>
           <th>Резултат</th>
           <th>Място · Година</th>
         </tr>
