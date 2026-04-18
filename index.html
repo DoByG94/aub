@@ -1890,7 +1890,7 @@ function renderRankings(key) {
       else if (pct >= 80) scoValue.style.color = '#fef08a';
       else                scoValue.style.color = 'var(--accent)';
     } else {
-      scoValue.textContent = '?? %';
+      scoValue.textContent = '??%';
       scoValue.style.color = 'var(--accent)';
     }
   }
@@ -3231,14 +3231,14 @@ function renderRankings(key) {
     <div class="pc-side-calc">
       <div class="pc-control-group">
         <label class="pc-label">Най-добро постижение</label>
-        <input id="sideWR" class="pc-input" type="text" placeholder="2:00:35" value="6:25:00">
+        <input id="sideWR" class="pc-input" type="text" placeholder="2:00:35">
       </div>
       <div class="pc-control-group">
         <label class="pc-label">Резултат</label>
-        <input id="sideResult" class="pc-input" type="text" placeholder="2:30:00" value="6:56:40">
+        <input id="sideResult" class="pc-input" type="text" placeholder="2:30:00">
       </div>
       <div id="sideOutput" class="pc-side-output">
-        <span class="sco-value" id="scoValue">92.40%</span>
+        <span class="sco-value" id="scoValue">??%</span>
       </div>
     </div>
   </div>
