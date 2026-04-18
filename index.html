@@ -66,11 +66,12 @@ const DISTANCE_FACTORS = {
 // Each entry: key (internal id), label (display name), timeBased (true=time, false=distance),
 //             m (male reference), f (female reference, optional)
 const CALC_REFERENCES = [
-  { key: "5k",       label: "5 км",                   timeBased: true,  m: "0:12:35",  f: "0:13:58"  },
-  { key: "10k",      label: "10 км",                  timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
-  { key: "half",     label: "Полумаратон",            timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
-  { key: "marathon", label: "Маратон",               timeBased: true,  m: "2:00:35",  f: "2:09:56"  },
-  { key: "vitosha",  label: "Витоша 100 (~99 км)",  timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
+  { key: "5k",       label: "5 км", timeBased: true,  m: "0:12:35",  f: "0:13:58"  },
+  { key: "10k",      label: "10 км", timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
+  { key: "half",     label: "Полумаратон", timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
+  { key: "marathon", label: "Маратон", timeBased: true,  m: "2:00:35",  f: "2:09:56"  },
+  { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
+  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:23",  f: "8:02:38"  },
 ];
 
 // 5. OTHER NOTABLE ACHIEVEMENTS
@@ -485,7 +486,7 @@ const IRONMAN_ENTRIES = [
   { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:51:55", bike:"4:41:52", run:"3:20:31", transitions:"0:08:24", total:"9:02:42", event:"Italy", year:2024 },
   { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:52:31", bike:"4:44:50", run:"3:21:30", transitions:"0:06:11", total:"9:05:02", event:"Barcelona", year:2023 },
   { firstName:"Momchil", lastName:"Dimitrov", gender:"m", ageGroup:"30-34", swim:"0:58:35", bike:"4:51:13", run:"3:29:36", transitions:"0:04:15", total:"9:23:40", event:"*Ican Gandia", year:2024 },
-  { firstName:"Emil", lastName:"Stoynev", gender:"m", ageGroup:"30-34", swim:"0:58:36", bike:"4:36:32", run:"3:38:11", transitions:"0:11:45", total:"9:25:04", event:"Portugal", year:2025},
+  { firstName:"Emil", lastName:"Stoynev", gender:"m", ageGroup:"30-34", swim:"12:58:36", bike:"4:36:32", run:"3:38:11", transitions:"0:11:45", total:"9:25:04", event:"Portugal", year:2025},
   { firstName:"Viktor", lastName:"Iliev", gender:"m", ageGroup:"18-24", swim:"0:59:20", bike:"4:54:25", run:"3:20:55", transitions:"0:12:31", total:"9:27:10", event:"Italy", year:2024 },
   { firstName:"Hristo", lastName:"Tsvetkov", gender:"m", ageGroup:"25-29", swim:"1:18:44", bike:"4:52:47", run:"3:10:29", transitions:"0:05:58", total:"9:27:58", event:"Barcelona", year:2023 },
   { firstName:"Ivan", lastName:"Grablev", gender:"m", ageGroup:"45-49", swim:"0:49:29", bike:"4:54:44", run:"3:38:32", transitions:"0:06:59", total:"9:29:42", event:"Brazil", year:2023 },
@@ -1745,11 +1746,11 @@ function renderRankings(key) {
    ═══════════════════════════════════════════════════════ */
 (function() {
   const LEVELS = [
-    { key: 'elit',    label: 'Елит',      mult: 1.1, pct: 90 },
-    { key: 'subelit', label: 'Субелит',   mult: 1.2, pct: 80 },
-    { key: 'napr',    label: 'Опитен',    mult: 1.3, pct: 70 },
-    { key: 'lyub',    label: 'Напреднал', mult: 1.4, pct: 60 },
-    { key: 'nach',    label: 'Трениращ',  mult: 1.5, pct: 50 },
+    { key: 'elit',    label: 'Елит',      pct: 90 },
+    { key: 'subelit', label: 'Субелит',   pct: 80 },
+    { key: 'napr',    label: 'Опитен',    pct: 70 },
+    { key: 'lyub',    label: 'Напреднал', pct: 60 },
+    { key: 'nach',    label: 'Трениращ',  pct: 50 },
   ];
 
   const discSel     = document.getElementById('pcDiscipline');
@@ -1796,20 +1797,40 @@ function renderRankings(key) {
     }
   }
 
-  function barCell(baseValue, mult, genderClass) {
-    if (baseValue === null) return '<td class="pc-td-time ' + genderClass + '-col">—</td>';
-    const val = Math.round(baseValue * mult);
-    return '<td class="pc-td-time ' + genderClass + '-col">' + fmtTime(val) + '</td>';
+  // For a given athlete time and WR time, compute % = WR/athlete * 100
+  function computePct(athleteSec, wrSec) {
+    if (athleteSec === null || wrSec === null || wrSec <= 0) return null;
+    return (wrSec / athleteSec) * 100;
   }
 
-  function render(baseM, baseF) {
+  // For a given % level and WR time, compute the threshold time = WR / (pct/100)
+  function levelTime(wrSec, pct) {
+    return Math.round(wrSec / (pct / 100));
+  }
+
+  function timeCell(wrSec, pct, athleteSec, genderClass) {
+    if (wrSec === null) return '<td class="pc-td-time ' + genderClass + '-col">—</td>';
+    const t = levelTime(wrSec, pct);
+    const athletePct = athleteSec !== null ? computePct(athleteSec, wrSec) : null;
+    const isActive = athletePct !== null && Math.round(athletePct) === pct;
+    return '<td class="pc-td-time ' + genderClass + '-col' + (isActive ? ' pc-td-active' : '') + '">' + fmtTime(t) + '</td>';
+  }
+
+  function render(baseM, baseF, wrM, wrF) {
     if (baseM === null && baseF === null) { pcTableWrap.style.display='none'; return; }
     pcTableWrap.style.display = '';
+
+    // Compute athlete's actual % to highlight the right row
+    const pctM = computePct(baseM, wrM);
+    const pctF = computePct(baseF, wrF);
+
     pcTbody.innerHTML = LEVELS.map(lvl => {
+      // Highlight row if athlete's % falls in this band
+      const inBandM = pctM !== null && pctM <= lvl.pct && (LEVELS[LEVELS.indexOf(lvl)-1] === undefined || pctM > LEVELS[LEVELS.indexOf(lvl)-1].pct - (LEVELS[LEVELS.indexOf(lvl)-1].pct - lvl.pct));
       return '<tr>' +
         '<td class="pc-td-level pc-level-' + lvl.key + '">' + lvl.label + '   (' + lvl.pct + '%) </td>' +
-        barCell(baseM, lvl.mult, 'male') +
-        barCell(baseF, lvl.mult, 'female') +
+        timeCell(wrM, lvl.pct, baseM, 'male') +
+        timeCell(wrF, lvl.pct, baseF, 'female') +
       '</tr>';
     }).join('');
   }
@@ -1820,7 +1841,9 @@ function renderRankings(key) {
     const timeBased = ref ? ref.timeBased : true;
     const baseM = parseInput(pcInputM.value.trim(), timeBased);
     const baseF = parseInput(pcInputF.value.trim(), timeBased);
-    render(baseM, baseF);
+    const wrM = ref && ref.m ? parseInput(ref.m, timeBased) : null;
+    const wrF = ref && ref.f ? parseInput(ref.f, timeBased) : null;
+    render(baseM, baseF, wrM, wrF);
   }
 
   function onDiscChange() {
@@ -1839,6 +1862,42 @@ function renderRankings(key) {
   // Default to 5k on load
   discSel.value = '5k';
   onDiscChange();
+})();
+
+/* ═══════════════════════════════════════════════════════
+   SIDE % CALCULATOR
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const inResult = document.getElementById('sideResult');
+  const inWR     = document.getElementById('sideWR');
+  const scoValue = document.getElementById('scoValue');
+
+  function toSec(str) {
+    const clean = (str || '').trim();
+    const parts = clean.split(':').map(Number);
+    if (parts.length === 3 && parts.every(isFinite)) return parts[0]*3600 + parts[1]*60 + parts[2];
+    if (parts.length === 2 && parts.every(isFinite)) return parts[0]*3600 + parts[1]*60;
+    return null;
+  }
+
+  function calc() {
+    const rSec  = toSec(inResult.value);
+    const wrSec = toSec(inWR.value);
+    if (rSec !== null && wrSec !== null && wrSec > 0 && rSec > 0) {
+      const pct = (wrSec / rSec) * 100;
+      scoValue.textContent = pct.toFixed(2) + '%';
+      if (pct >= 90)      scoValue.style.color = '#fb923c';
+      else if (pct >= 80) scoValue.style.color = '#fef08a';
+      else                scoValue.style.color = 'var(--accent)';
+    } else {
+      scoValue.textContent = '?? %';
+      scoValue.style.color = 'var(--accent)';
+    }
+  }
+
+  inResult.addEventListener('input', calc);
+  inWR.addEventListener('input', calc);
+  calc(); // pre-calculate with default values
 })();
 
 }); // end DOMContentLoaded
@@ -2339,8 +2398,8 @@ function renderRankings(key) {
   }
   .perf-equiv-male   { color: var(--male); text-align: center; }
   .perf-equiv-female { color: var(--female); text-align: center; }
-  .perf-pct.perf-elite { color: #f0b429; }
-  .perf-pct.perf-a     { color: var(--green); }
+  .perf-pct.perf-elite { color: #fb923c; }
+  .perf-pct.perf-a     { color: #fef08a; }
   .perf-pct.perf-b     { color: #f59e0b; }
   .perf-pct.perf-c     { color: var(--text-dim); }
     font-family: 'Barlow Condensed', sans-serif;
@@ -2739,6 +2798,8 @@ function renderRankings(key) {
     text-transform: uppercase;
     color: var(--text-muted);
   }
+  .pc-label.cat-male   { color: var(--male); }
+  .pc-label.cat-female { color: var(--female); }
   .pc-hint {
     font-size: 0.65rem;
     letter-spacing: 0.05em;
@@ -2748,7 +2809,7 @@ function renderRankings(key) {
   }
   .pc-select, .pc-input {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem;
+    font-size: 1.5rem;
     letter-spacing: 0.06em;
     background: var(--bg3);
     color: var(--text);
@@ -2779,6 +2840,8 @@ function renderRankings(key) {
     font-size: 0.68rem;
     letter-spacing: 0.12em;
   }
+  .pc-th-time.male-col   { color: var(--male); }
+  .pc-th-time.female-col { color: var(--female); }
   .pc-bar-fill.male   { background: #3b82f6; }
   .pc-bar-fill.female { background: #ec4899; }
   .pc-record-note {
@@ -2792,7 +2855,62 @@ function renderRankings(key) {
     background: var(--bg3);
   }
   .pc-record-note strong { color: var(--accent); }
-  .pc-table-wrap { overflow-x: auto; }
+  .pc-body-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+  .pc-table-wrap {
+    flex: 0 0 66.666%;
+    max-width: 66.666%;
+    overflow-x: auto;
+  }
+  .pc-side-calc {
+    flex: 1 1 0;
+    min-width: 200px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 1.2rem 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .pc-side-title { display: none; }
+  .pc-side-calc .pc-control-group {
+    margin-bottom: 0.9rem;
+  }
+  .pc-side-calc .pc-input {
+    min-width: unset;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .pc-side-output {
+    margin-top: 0.8rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.1rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+  .pc-side-output .sco-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+  .pc-side-output .sco-value {
+    font-size: 2.6rem;
+    font-weight: 700;
+    font-family: 'Bebas Neue', sans-serif;
+    color: var(--accent);
+    display: block;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
   .pc-table {
     width: 100%;
     border-collapse: collapse;
@@ -2847,8 +2965,10 @@ function renderRankings(key) {
     transition: width 0.4s ease;
   }
   /* level colours */
-  .pc-level-elit   { color: #f0b429; }
-  .pc-level-elit .pc-bar-fill   { background: #f0b429; }
+  .pc-level-elit   { color: #fb923c; }
+  .pc-level-elit .pc-bar-fill   { background: #fb923c; }
+  .pc-level-subelit { color: #fef08a; }
+  .pc-level-subelit .pc-bar-fill { background: #fef08a; }
   .pc-level-napr   { color: var(--green); }
   .pc-level-napr .pc-bar-fill   { background: var(--green); }
   .pc-level-lyub   { color: #60a5fa; }
@@ -3087,25 +3207,40 @@ function renderRankings(key) {
       </select>
     </div>
     <div class="pc-control-group">
-      <label class="pc-label">♂ Резултат <span class="pc-hint">(чч:мм:сс)</span></label>
-      <input id="pcInputM" class="pc-input" type="text" placeholder="напр. 06:53:12">
+      <label class="pc-label cat-male">♂ Резултат</label>
+      <input id="pcInputM" class="pc-input" type="text" placeholder="06:25:00">
     </div>
     <div class="pc-control-group">
-      <label class="pc-label">♀ Резултат <span class="pc-hint">(чч:мм:сс)</span></label>
-      <input id="pcInputF" class="pc-input" type="text" placeholder="напр. 08:57:49">
+      <label class="pc-label cat-female">♀ Резултат</label>
+      <input id="pcInputF" class="pc-input" type="text" placeholder="08:00:00">
     </div>
   </div>
-  <div id="pcTableWrap" class="pc-table-wrap" style="display:none">
-    <table class="pc-table">
-      <thead>
-        <tr>
-          <th class="pc-th-level">Ниво</th>
-          <th class="pc-th-time male-col">♂ Резултат</th>
-          <th class="pc-th-time female-col">♀ Резултат</th>
-        </tr>
-      </thead>
-      <tbody id="pcTbody"></tbody>
-    </table>
+  <div class="pc-body-layout">
+    <div id="pcTableWrap" class="pc-table-wrap" style="display:none">
+      <table class="pc-table">
+        <thead>
+          <tr>
+            <th class="pc-th-level">Ниво</th>
+            <th class="pc-th-time male-col">♂ Резултат</th>
+            <th class="pc-th-time female-col">♀ Резултат</th>
+          </tr>
+        </thead>
+        <tbody id="pcTbody"></tbody>
+      </table>
+    </div>
+    <div class="pc-side-calc">
+      <div class="pc-control-group">
+        <label class="pc-label">Най-добро постижение</label>
+        <input id="sideWR" class="pc-input" type="text" placeholder="2:00:35" value="6:25:00">
+      </div>
+      <div class="pc-control-group">
+        <label class="pc-label">Резултат</label>
+        <input id="sideResult" class="pc-input" type="text" placeholder="2:30:00" value="6:56:40">
+      </div>
+      <div id="sideOutput" class="pc-side-output">
+        <span class="sco-value" id="scoValue">92.40%</span>
+      </div>
+    </div>
   </div>
 </div>
 
