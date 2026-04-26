@@ -31,18 +31,22 @@ const RANKING_CATEGORIES = [
   "24h",
 ];
 
-// 2b. GENDER EQUIVALENCE FACTORS
-// Used to calculate the male equivalent of a female result.
-// Formula: equivalent = result / factor  (i.e. factor 1.10 → divide time by 1.10)
-const GENDER_FACTORS = {
-  "vitosha":  1.1297,
-  "marathon": 1.0967,
-  "half":     1.1024,
-};
+// 3. PERFORMANCE CALCULATOR REFERENCE TIMES
+// Used to populate the calculator dropdown with world-record-level reference values.
+// Each entry: key (internal id), label (display name), timeBased (true=time, false=distance),
+//             m (male reference), f (female reference, optional)
+const CALC_REFERENCES = [
+  { key: "5k",       label: "5 км", timeBased: true,  m: "0:12:35",  f: "0:13:58"  },
+  { key: "10k",      label: "10 км", timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
+  { key: "half",     label: "Полумаратон", timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
+  { key: "marathon", label: "Маратон", timeBased: true,  m: "1:59:30",  f: "2:09:56"  },
+  { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
+  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:23",  f: "8:02:38"  },
+];
 
-// 2d. WORLD RECORDS (for performance % calculation)
+// 4. WORLD RECORDS (for performance % calculation)
 const AVG_TOP_10 = {
-  "mm":  "2:01:41",
+  "mm":  "2:00:58",
   "fm":  "2:13:18",
   "mhm": "0:57:37",
   "fhm": "1:03:35",
@@ -51,28 +55,21 @@ const AVG_TOP_10 = {
   "m10k": "0:26:24",
   "f10k": "0:29:07",
 };
-// Used to calculate an equivalent time for a different distance.
+
+// 5. Used to calculate an equivalent time for a different distance.
 // Vitosha 100 → 100 km flat equivalent
-// Marathon → half marathon equivalent
+// Vitosha 100 (old) → Vitosha 100 (new) equivalent
 const DISTANCE_FACTORS = {
   "vitosha":  0.9350,
   "vitosha-old": 1.1022,
-  "marathon": 0.4740,
-  "half":     2.1096,
 };
 
-// 4. PERFORMANCE CALCULATOR REFERENCE TIMES
-// Used to populate the calculator dropdown with world-record-level reference values.
-// Each entry: key (internal id), label (display name), timeBased (true=time, false=distance),
-//             m (male reference), f (female reference, optional)
-const CALC_REFERENCES = [
-  { key: "5k",       label: "5 км", timeBased: true,  m: "0:12:35",  f: "0:13:58"  },
-  { key: "10k",      label: "10 км", timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
-  { key: "half",     label: "Полумаратон", timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
-  { key: "marathon", label: "Маратон", timeBased: true,  m: "2:00:35",  f: "2:09:56"  },
-  { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
-  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:23",  f: "8:02:38"  },
-];
+// 6. GENDER EQUIVALENCE FACTORS
+// Used to calculate the male equivalent of a female result.
+// Formula: equivalent = result / factor  (i.e. factor 1.10 → divide time by 1.10)
+const GENDER_FACTORS = {
+  "vitosha":  1.1297,
+};
 
 // 5. OTHER NOTABLE ACHIEVEMENTS
 // Fields: discipline (display label), gender ("m" or "f"),
@@ -1454,12 +1451,21 @@ function renderRankings(key) {
     return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
   }
 
+  function toSecSimple(t) {
+    const parts = t.split(':').map(Number);
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
   function buildTable(entries, gender) {
     if (entries.length === 0) return `<div class="empty-state">Няма въведени резултати.</div>`;
     const isMale = gender === 'm';
     const isFemale = gender === 'f';
-    const gFactor = GENDER_FACTORS['marathon'];
-    const dFactor = DISTANCE_FACTORS['marathon'];
+    // marathon gender factor: female time / male time from AVG_TOP_10
+    const gFactor = toSecSimple(AVG_TOP_10['fm']) / toSecSimple(AVG_TOP_10['mm']);
+    // marathon → half marathon factor derived from AVG_TOP_10 ratios
+    const mDFactor = toSecSimple(AVG_TOP_10['mhm']) / toSecSimple(AVG_TOP_10['mm']);
+    const fDFactor = toSecSimple(AVG_TOP_10['fhm']) / toSecSimple(AVG_TOP_10['fm']);
+    const dFactor = isMale ? mDFactor : fDFactor;
     const rows = entries.map((e, i) => `
       <tr>
         <td class="rank-num ${rankClass(i)}">${i + 1}</td>
@@ -1508,12 +1514,21 @@ function renderRankings(key) {
     return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
   }
 
+  function toSecSimple(t) {
+    const parts = t.split(':').map(Number);
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
   function buildTable(entries, gender) {
     if (entries.length === 0) return `<div class="empty-state">Няма въведени резултати.</div>`;
     const isMale = gender === 'm';
     const isFemale = gender === 'f';
-    const gFactor = GENDER_FACTORS['half'];
-    const dFactor = DISTANCE_FACTORS['half'];
+    // half marathon gender factor: female time / male time from AVG_TOP_10
+    const gFactor = toSecSimple(AVG_TOP_10['fhm']) / toSecSimple(AVG_TOP_10['mhm']);
+    // half marathon → marathon factor derived from AVG_TOP_10 ratios (inverse of half/marathon)
+    const mDFactor = toSecSimple(AVG_TOP_10['mm']) / toSecSimple(AVG_TOP_10['mhm']);
+    const fDFactor = toSecSimple(AVG_TOP_10['fm']) / toSecSimple(AVG_TOP_10['fhm']);
+    const dFactor = isMale ? mDFactor : fDFactor;
     const rows = entries.map((e, i) => `
       <tr>
         <td class="rank-num ${rankClass(i)}">${i + 1}</td>
@@ -1628,8 +1643,7 @@ function renderRankings(key) {
     entries.forEach(e => {
       const sec = toSec(e.result);
       if (sec === Infinity) return;
-      const gap = (sec - wrSec) / wrSec * 100;
-      const pct = 100 - gap;
+      const pct = wrSec / sec * 100;
       allRows.push({
         name: e.name,
         category: cat.label,
@@ -1643,11 +1657,11 @@ function renderRankings(key) {
     });
   });
 
-  // Keep only results at or above 80% performance
-  allRows = allRows.filter(r => r.pct >= 80);
-
   // Sort by pct descending, then by raw time ascending as tiebreaker
   allRows.sort((a, b) => b.pct - a.pct || a.sec - b.sec);
+
+  // Keep only top 20 entries
+  allRows = allRows.slice(0, 20);
 
   function pctClass(pct) {
     if (pct >= 90) return 'perf-elite';
