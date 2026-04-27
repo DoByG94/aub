@@ -1633,7 +1633,7 @@ function renderRankings(key) {
     const entries = ENTRIES
       .filter(e => e.category === cat.key && e.gender === cat.gender)
       .sort((a, b) => toSec(a.result) - toSec(b.result));
-    return entries.slice(0, 20);
+    return entries.slice(0, 15);
   }
 
   let allRows = [];
@@ -1660,8 +1660,8 @@ function renderRankings(key) {
   // Sort by pct descending, then by raw time ascending as tiebreaker
   allRows.sort((a, b) => b.pct - a.pct || a.sec - b.sec);
 
-  // Keep only top 20 entries
-  allRows = allRows.slice(0, 20);
+  // Keep only top 15 entries
+  allRows = allRows.slice(0, 15);
 
   function pctClass(pct) {
     if (pct >= 90) return 'perf-elite';
