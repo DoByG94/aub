@@ -40,8 +40,17 @@ const CALC_REFERENCES = [
   { key: "10k",      label: "10 км", timeBased: true,  m: "0:26:11",  f: "0:28:46"  },
   { key: "half",     label: "Полумаратон", timeBased: true,  m: "0:57:20",  f: "1:02:52"  },
   { key: "marathon", label: "Маратон", timeBased: true,  m: "1:59:30",  f: "2:09:56"  },
-  { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:15:00"  },
-  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:23",  f: "8:02:38"  },
+  { key: "50k",  label: "50 км", timeBased: true,  m: "2:38:43",  f: "2:59:54"  },
+  { key: "50m",  label: "50 мили", timeBased: true,  m: "4:48:21",  f: "5:18:57"  },
+  { key: "100k",  label: "100 км", timeBased: true,  m: "5:59:20",  f: "6:33:11"  },
+  { key: "100m",  label: "100 мили", timeBased: true,  m: "10:46:38",  f: "12:19:34"  },
+  { key: "6h",  label: "6 часа", timeBased: false,  m: "100.18",  f: "87.03"  },
+  { key: "12h",  label: "12 часа", timeBased: false,  m: "177.41",  f: "156.67"  },
+  { key: "24h",  label: "24 часа", timeBased: false,  m: "319.61",  f: "278.62"  },
+  { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:10:00"  },
+  { key: "comrades",  label: "Комрадс", timeBased: true,  m: "5:13:58",  f: "5:44:54"  },
+  { key: "spartathlon",  label: "Спартатлон", timeBased: true,  m: "19:55:09",  f: "22:35:31"  },
+  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:24",  f: "8:02:38"  },
 ];
 
 // 4. WORLD RECORDS (for performance % calculation)
@@ -1832,7 +1841,6 @@ function renderRankings(key) {
   }
 
   function render(baseM, baseF, wrM, wrF) {
-    if (baseM === null && baseF === null) { pcTableWrap.style.display='none'; return; }
     pcTableWrap.style.display = '';
 
     // Compute athlete's actual % to highlight the right row
@@ -1856,26 +1864,141 @@ function renderRankings(key) {
     const timeBased = ref ? ref.timeBased : true;
     const baseM = parseInput(pcInputM.value.trim(), timeBased);
     const baseF = parseInput(pcInputF.value.trim(), timeBased);
-    const wrM = ref && ref.m ? parseInput(ref.m, timeBased) : null;
-    const wrF = ref && ref.f ? parseInput(ref.f, timeBased) : null;
+
+    // WR references: use dropdown ref if available.
+    // In manual mode, derive both WRs from the field that was actually typed —
+    // that field is the true reference; the other is auto-calculated from it.
+    let wrM, wrF;
+    if (ref && ref.m) {
+      wrM = parseInput(ref.m, timeBased);
+    } else if (lastEdited === 'F' && baseF !== null) {
+      // Female was typed → female is the source; male WR = female * 0.9
+      wrM = timeBased ? Math.round(baseF * 0.9) : baseF / 0.9;
+    } else {
+      wrM = baseM;
+    }
+    if (ref && ref.f) {
+      wrF = parseInput(ref.f, timeBased);
+    } else if (lastEdited === 'M' && baseM !== null) {
+      // Male was typed → male is the source; female WR = male / 0.9
+      wrF = timeBased ? Math.round(baseM / 0.9) : baseM * 0.9;
+    } else {
+      wrF = baseF;
+    }
+
     render(baseM, baseF, wrM, wrF);
+  }
+
+  // Track whether the female field was auto-filled so manual edits aren't overwritten
+  let femaleAutoFilled = false;
+
+  function autoFillFemale() {
+    const key = discSel.value;
+    const ref = getRef(key);
+    const timeBased = ref ? ref.timeBased : true;
+    const baseM = parseInput(pcInputM.value.trim(), timeBased);
+
+    // Only auto-fill if the female field is empty or was previously auto-filled
+    if (baseM !== null && (pcInputF.value.trim() === '' || femaleAutoFilled)) {
+      // Female = male time / 0.9  (female is 90% of male performance)
+      if (timeBased) {
+        pcInputF.value = fmtTime(Math.round(baseM / 0.9));
+      } else {
+        pcInputF.value = (baseM * 0.9).toFixed(2);
+      }
+      femaleAutoFilled = true;
+    }
+    refresh();
+  }
+
+  const pcLockM   = document.getElementById('pcLockM');
+  const pcLockF   = document.getElementById('pcLockF');
+  const pcFemPct  = document.getElementById('pcFemPct');
+
+  function setLocked(locked) {
+    pcInputM.disabled = locked;
+    pcInputF.disabled = locked;
+    pcLockM.style.display = locked ? '' : 'none';
+    pcLockF.style.display = locked ? '' : 'none';
+  }
+
+  function updateFemPct() {
+    const key = discSel.value;
+    const ref = getRef(key);
+    const timeBased = ref ? ref.timeBased : true;
+    const baseM = parseInput(pcInputM.value.trim(), timeBased);
+    const baseF = parseInput(pcInputF.value.trim(), timeBased);
+    if (baseM && baseF && baseM > 0) {
+      let pct;
+      if (timeBased) {
+        pct = (baseM / baseF) * 100;
+      } else {
+        pct = (baseF / baseM) * 100;
+      }
+      pcFemPct.textContent = '[' + pct.toFixed(1) + '%]';
+    } else {
+      pcFemPct.textContent = '[90.0%]';
+    }
   }
 
   function onDiscChange() {
     const key = discSel.value;
     const ref = getRef(key);
-    if (!ref) { pcTableWrap.style.display='none'; return; }
+    if (!ref) {
+      setLocked(false);
+      pcInputM.value = '';
+      pcInputF.value = '';
+      pcFemPct.textContent = '[90.0%]';
+      femaleAutoFilled = false;
+      maleAutoFilled = false;
+      render(null, null, null, null);
+      pcTableWrap.style.display = '';
+      return;
+    }
     pcInputM.value = ref.m || '';
     pcInputF.value = ref.f || '';
+    setLocked(true);
+    femaleAutoFilled = true;
+    updateFemPct();
+    updateFemPct();
     refresh();
   }
 
-  discSel.addEventListener('change', onDiscChange);
-  pcInputM.addEventListener('input', refresh);
-  pcInputF.addEventListener('input', refresh);
+  // 'M' = male was last typed, 'F' = female was last typed
+  let lastEdited = null;
 
-  // Default to 5k on load
-  discSel.value = '5k';
+  discSel.addEventListener('change', onDiscChange);
+  pcInputM.addEventListener('input', function() {
+    lastEdited = 'M';
+    const key = discSel.value;
+    const ref = getRef(key);
+    const timeBased = ref ? ref.timeBased : true;
+    const baseM = parseInput(pcInputM.value.trim(), timeBased);
+    if (baseM !== null) {
+      pcInputF.value = timeBased ? fmtTime(Math.round(baseM / 0.9)) : (baseM * 0.9).toFixed(2);
+    } else {
+      pcInputF.value = '';
+    }
+    updateFemPct();
+    refresh();
+  });
+  pcInputF.addEventListener('input', function() {
+    lastEdited = 'F';
+    const key = discSel.value;
+    const ref = getRef(key);
+    const timeBased = ref ? ref.timeBased : true;
+    const baseF = parseInput(pcInputF.value.trim(), timeBased);
+    if (baseF !== null) {
+      pcInputM.value = timeBased ? fmtTime(Math.round(baseF * 0.9)) : (baseF / 0.9).toFixed(2);
+    } else {
+      pcInputM.value = '';
+    }
+    updateFemPct();
+    refresh();
+  });
+
+  // Default to — Ръчно — on load
+  discSel.value = '';
   onDiscChange();
 })();
 
@@ -2831,7 +2954,8 @@ function renderRankings(key) {
     border: 1px solid var(--border);
     padding: 0.45rem 1.8rem 0.45rem 0.8rem;
     outline: none;
-    min-width: 200px;
+    min-width: 140px;
+    width: 140px;
   }
   .pc-select {
     cursor: pointer;
@@ -2841,11 +2965,28 @@ function renderRankings(key) {
     background-repeat: no-repeat;
     background-position: right 0.55rem center;
     background-size: 10px 6px;
+    min-width: 200px;
+    width: auto;
   }
   .pc-select:focus, .pc-input:focus {
     border-color: var(--accent);
   }
   .pc-input { padding-right: 0.8rem; }
+  .pc-input:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    border-color: var(--border);
+    color: var(--text);
+    background: var(--bg3);
+  }
+  .pc-input-wrap { position: relative; display: inline-flex; align-items: center; }
+  .pc-locked-icon {
+    position: absolute;
+    right: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.5;
+    pointer-events: none;
+  }
   .pc-gender-btns, .pc-gender-btn { display: none; }
 
   .male-col   { border-left: 2px solid #3b82f6; }
@@ -3219,16 +3360,22 @@ function renderRankings(key) {
     <div class="pc-control-group">
       <label class="pc-label">Дисциплина</label>
       <select id="pcDiscipline" class="pc-select">
-        <option value="">— Изберете —</option>
+        <option value="">— Ръчно —</option>
       </select>
     </div>
     <div class="pc-control-group">
       <label class="pc-label cat-male">♂ Резултат</label>
-      <input id="pcInputM" class="pc-input" type="text" placeholder="06:25:00">
+      <div class="pc-input-wrap">
+        <input id="pcInputM" class="pc-input" type="text" placeholder="06:25:00">
+        <span class="pc-locked-icon" id="pcLockM" style="display:none">🔒</span>
+      </div>
     </div>
     <div class="pc-control-group">
-      <label class="pc-label cat-female">♀ Резултат</label>
-      <input id="pcInputF" class="pc-input" type="text" placeholder="08:00:00">
+      <label class="pc-label cat-female">♀ Резултат <span id="pcFemPct" style="font-size:1.1em;opacity:0.7;">[90.0%]</span></label>
+      <div class="pc-input-wrap">
+        <input id="pcInputF" class="pc-input" type="text" placeholder="07:10:00">
+        <span class="pc-locked-icon" id="pcLockF" style="display:none">🔒</span>
+      </div>
     </div>
   </div>
   <div class="pc-body-layout">
