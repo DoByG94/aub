@@ -53,16 +53,81 @@ const CALC_REFERENCES = [
   { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:24",  f: "8:02:38"  },
 ];
 
-// 4. WORLD RECORDS (for performance % calculation)
+// 4. TOP-10 TIMES (for performance % calculation)
+// 4 disciplines × 10 entries, each { pos, m, f }.
+// AVG_TOP_10 is computed automatically as the average of m/f times per discipline.
+
+const TOP10_REFS = {
+  "marathon": [
+    { pos:  1, m: "1:59:30", f: "2:09:56" },
+    { pos:  2, m: "1:59:41", f: "2:10:51" },
+    { pos:  3, m: "2:00:28", f: "2:11:53" },
+    { pos:  4, m: "2:00:35", f: "2:13:44" },
+    { pos:  5, m: "2:01:09", f: "2:14:00" },
+    { pos:  6, m: "2:01:25", f: "2:14:04" },
+    { pos:  7, m: "2:01:39", f: "2:14:18" },
+    { pos:  8, m: "2:01:39", f: "2:14:29" },
+    { pos:  9, m: "2:01:41", f: "2:14:43" },
+    { pos: 10, m: "2:01:48", f: "2:14:57" },
+  ],
+  "half": [
+    { pos:  1, m: "0:56:42", f: "1:02:52" },
+    { pos:  2, m: "0:57:20", f: "1:03:04" },
+    { pos:  3, m: "0:57:30", f: "1:03:08" },
+    { pos:  4, m: "0:57:31", f: "1:03:21" },
+    { pos:  5, m: "0:57:32", f: "1:03:32" },
+    { pos:  6, m: "0:57:37", f: "1:03:35" },
+    { pos:  7, m: "0:57:40", f: "1:03:51" },
+    { pos:  8, m: "0:57:41", f: "1:04:01" },
+    { pos:  9, m: "0:57:41", f: "1:04:02" },
+    { pos: 10, m: "0:57:50", f: "1:04:13" },
+  ],
+  "5k": [
+    { pos:  1, m: "0:12:35", f: "0:13:54" },
+    { pos:  2, m: "0:12:37", f: "0:13:58" },
+    { pos:  3, m: "0:12:37", f: "0:14:00" },
+    { pos:  4, m: "0:12:39", f: "0:14:01" },
+    { pos:  5, m: "0:12:39", f: "0:14:04" },
+    { pos:  6, m: "0:12:40", f: "0:14:04" },
+    { pos:  7, m: "0:12:40", f: "0:14:05" },
+    { pos:  8, m: "0:12:40", f: "0:14:06" },
+    { pos:  9, m: "0:12:41", f: "0:14:07" },
+    { pos: 10, m: "0:12:42", f: "0:14:08" },
+  ],
+  "10k": [
+    { pos:  1, m: "0:26:11", f: "0:28:54" },
+    { pos:  2, m: "0:26:18", f: "0:28:57" },
+    { pos:  3, m: "0:26:20", f: "0:28:58" },
+    { pos:  4, m: "0:26:23", f: "0:29:01" },
+    { pos:  5, m: "0:26:26", f: "0:29:06" },
+    { pos:  6, m: "0:26:28", f: "0:29:07" },
+    { pos:  7, m: "0:26:29", f: "0:29:14" },
+    { pos:  8, m: "0:26:29", f: "0:29:17" },
+    { pos:  9, m: "0:26:30", f: "0:29:19" },
+    { pos: 10, m: "0:26:31", f: "0:29:25" },
+  ],
+};
+
+// Computes average time (as "h:mm:ss") from an array of {pos, m, f} objects for one gender.
+function calcAvgTime(refs, gender) {
+  if (!refs || refs.length === 0) return "0:00:00";
+  const toS = t => { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + (p[2]||0); };
+  const avgSec = Math.round(refs.reduce((sum, r) => sum + toS(r[gender]), 0) / refs.length);
+  const h = Math.floor(avgSec / 3600);
+  const m = Math.floor((avgSec % 3600) / 60).toString().padStart(2, '0');
+  const s = (avgSec % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
 const AVG_TOP_10 = {
-  "mm":  "2:00:58",
-  "fm":  "2:13:18",
-  "mhm": "0:57:37",
-  "fhm": "1:03:35",
-  "m5k": "0:12:39",
-  "f5k": "0:14:04",
-  "m10k": "0:26:24",
-  "f10k": "0:29:07",
+  "mm":   calcAvgTime(TOP10_REFS["marathon"], "m"),
+  "fm":   calcAvgTime(TOP10_REFS["marathon"], "f"),
+  "mhm":  calcAvgTime(TOP10_REFS["half"],     "m"),
+  "fhm":  calcAvgTime(TOP10_REFS["half"],     "f"),
+  "m5k":  calcAvgTime(TOP10_REFS["5k"],       "m"),
+  "f5k":  calcAvgTime(TOP10_REFS["5k"],       "f"),
+  "m10k": calcAvgTime(TOP10_REFS["10k"],      "m"),
+  "f10k": calcAvgTime(TOP10_REFS["10k"],      "f"),
 };
 
 // 5. Used to calculate an equivalent time for a different distance.
@@ -76,9 +141,64 @@ const DISTANCE_FACTORS = {
 // 6. GENDER EQUIVALENCE FACTORS
 // Used to calculate the male equivalent of a female result.
 // Formula: equivalent = result / factor  (i.e. factor 1.10 → divide time by 1.10)
-const GENDER_FACTORS = {
-  "vitosha":  1.1297,
+//
+// For Comrades, Western States, and 100km Road, the factor is derived from
+// 3 reference pairs (male time + female time). The factor = average of (female/male) ratios.
+// Add up to 3 pairs per discipline. The vitosha factor remains hardcoded.
+
+const GENDER_RATIO_REFS = {
+  "comrades": [
+    { pos:  1, m: "5:13:58", f: "5:44:53" },
+    { pos:  2, m: "5:14:01", f: "5:44:54" },
+    { pos:  3, m: "5:15:56", f: "5:49:46" },
+    { pos:  4, m: "5:18:19", f: "5:51:19" },
+    { pos:  5, m: "5:19:36", f: "5:53:36" },
+    { pos:  6, m: "5:20:41", f: "5:54:43" },
+    { pos:  7, m: "5:20:43", f: "5:55:56" },
+    { pos:  8, m: "5:21:31", f: "5:56:26" },
+    { pos:  9, m: "5:21:48", f: "5:58:25" },
+    { pos: 10, m: "5:22:29", f: "5:58:51" },
+  ],
+  "western-states": [
+    { pos:  1, m: "13:46:15", f: "15:28:05" },
+    { pos:  2, m: "13:51:08", f: "15:29:33" },
+    { pos:  3, m: "13:53:55", f: "15:42:14" },
+    { pos:  4, m: "14:07:58", f: "15:46:57" },
+    { pos:  5, m: "14:09:28", f: "15:51:44" },
+    { pos:  6, m: "14:11:25", f: "15:57:09" },
+    { pos:  7, m: "14:13:45", f: "16:04:38" },
+    { pos:  8, m: "14:17:39", f: "16:13:07" },
+    { pos:  9, m: "14:19:22", f: "16:20:03" },
+    { pos: 10, m: "14:20:09", f: "16:25:59" },
+  ],
+  "100km-road": [
+    { pos:  1, m: "6:05:35", f: "6:33:11" },
+    { pos:  2, m: "6:05:41", f: "6:59:55" },
+    { pos:  3, m: "6:06:07", f: "7:00:27" },
+    { pos:  4, m: "6:07:10", f: "7:00:48" },
+    { pos:  5, m: "6:08:24", f: "7:01:18" },
+    { pos:  6, m: "6:09:14", f: "7:03:40" },
+    { pos:  7, m: "6:09:26", f: "7:03:48" },
+    { pos:  8, m: "6:10:02", f: "7:03:48" },
+    { pos:  9, m: "6:10:20", f: "7:04:03" },
+    { pos: 10, m: "6:12:10", f: "7:04:36" },
+  ],
 };
+
+// Computes average gender factor (female/male ratio) from an array of {m, f} time pairs.
+function calcGenderFactor(pairs) {
+  const toS = t => { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + (p[2]||0); };
+  const ratios = pairs.map(pair => toS(pair.f) / toS(pair.m));
+  return ratios.reduce((sum, r) => sum + r, 0) / ratios.length;
+}
+
+const GENDER_FACTORS = {
+  "comrades":       calcGenderFactor(GENDER_RATIO_REFS["comrades"]),
+  "western-states": calcGenderFactor(GENDER_RATIO_REFS["western-states"]),
+  "100km-road":     calcGenderFactor(GENDER_RATIO_REFS["100km-road"]),
+};
+// Vitosha gender factor = average of Comrades and WSER only (100km road excluded)
+GENDER_FACTORS["vitosha"] = (GENDER_FACTORS["comrades"] + GENDER_FACTORS["western-states"]) / 2;
 
 // 5. OTHER NOTABLE ACHIEVEMENTS
 // Fields: discipline (display label), gender ("m" or "f"),
@@ -89,7 +209,7 @@ const OTHER_ACHIEVEMENTS = [
   { discipline: "Комрадс", gender: "f", name: "Евелина Александрова", result: "10:43:13", year: 2015, race: "Comrades Up Run", url: "https://statistik.d-u-v.org/getresultevent.php?event=22760&cat=all&country=BUL&speed=1&aktype=2&Submit.x=11&Submit.y=6" },
   { discipline: "Спартатлон", gender: "m", name: "Руско Кадиев", result: "24:08:13", year: 1992, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresultevent.php?event=5676" },
   { discipline: "Витоша 100", gender: "m", name: "Христо Цветков", result: "6:56:40", year: 2025, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresultperson.php?runner=694803" },
-  { discipline: "Витоша 100", gender: "f", name: "Мария Николова", result: "8:56:39", year: 2024, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresultevent.php?event=104199" },
+  { discipline: "Витоша 100", gender: "f", name: "Мария Николова", result: "8:48:14", year: 2026, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresultevent.php?event=104199" },
   { discipline: "Уестърн Стейтс", gender: "m", name: "Иван Димитров", result: "23:44:40", year: 2022, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=109409&cat=all&year=all&country=BUL&length=all&Submit.x=1&Submit.y=10" },
   { discipline: "УТМБ", gender: "m", name: "Димитър Маринов", result: "29:24:34", year: 2022, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=90247&cat=M&year=all&country=BUL&length=all&Submit.x=17&Submit.y=7" },
   { discipline: "УТМБ", gender: "f", name: "Мария Николова", result: "27:23:20", year: 2018, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=90247&cat=W&year=all&country=BUL&length=all&Submit.x=25&Submit.y=5" },
@@ -367,13 +487,16 @@ const ENTRIES = [
   {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"7:45:34", year:2022},
   {category:"vitosha", gender:"m", rank:"2", name:"Димитър Шадура", result:"7:45:40", year:2025},
   {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"7:52:01", year:2024},
+  {category:"vitosha", gender:"m", rank:"1", name:"Пламен Пенов", result:"8:02:50", year:2026},
   {category:"vitosha", gender:"m", rank:"2", name:"Димитър Шадура", result:"8:04:52", year:2024},
   {category:"vitosha", gender:"m", rank:"3", name:"Пламен Пенов", result:"8:05:55", year:2024},
   {category:"vitosha", gender:"m", rank:"1", name:"Христо Цветков", result:"8:07:23", year:2021},
+  {category:"vitosha", gender:"m", rank:"2", name:"Стилян Аврамов", result:"8:10:29", year:2026},
   {category:"vitosha", gender:"m", rank:"1", name:"Александър Спасов", result:"8:12:06", year:2018},
   {category:"vitosha", gender:"m", rank:"1", name:"Ивайло Атанасов", result:"8:18:20", year:2020},
   {category:"vitosha", gender:"m", rank:"3", name:"Николай Стойчев", result:"8:23:58", year:2025},
   {category:"vitosha", gender:"m", rank:"4", name:"Александър Христов", result:"8:28:09", year:2024},
+  {category:"vitosha", gender:"m", rank:"3", name:"Евгений Попов", result:"8:29:13", year:2026},
   {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:29:35", year:2023},
   {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:30:17", year:2018},
   {category:"vitosha", gender:"m", rank:"3", name:"Даниел Кубашлиев", result:"8:33:11", year:2023},
@@ -387,6 +510,7 @@ const ENTRIES = [
   {category:"vitosha", gender:"m", rank:"7", name:"Андриан Кърпаров", result:"8:42:58", year:2025},
   {category:"vitosha", gender:"m", rank:"1", name:"Андрей Гридин", result:"8:43:21", year:2017},
   {category:"vitosha", gender:"m", rank:"3", name:"Тодор Цанков", result:"8:43:46", year:2018},
+  {category:"vitosha", gender:"m", rank:"4", name:"Георги Стефанов", result:"8:44:10", year:2026},
   {category:"vitosha", gender:"m", rank:"2", name:"Ивайло Атанасов", result:"8:48:04", year:2017},
   {category:"vitosha", gender:"m", rank:"8", name:"Никола Кондарев", result:"8:51:06", year:2025},
   {category:"vitosha", gender:"m", rank:"4", name:"Стилян Аврамов", result:"8:53:31", year:2023},
@@ -399,12 +523,17 @@ const ENTRIES = [
   {category:"vitosha", gender:"m", rank:"8", name:"Андриан Кърпаров", result:"8:57:19", year:2024},
   {category:"vitosha", gender:"m", rank:"4", name:"Калоян Чанев", result:"8:58:10", year:2022},
   {category:"vitosha", gender:"m", rank:"2", name:"Стефан Иванов", result:"8:58:59", year:2020},
+  {category:"vitosha", gender:"m", rank:"6", name:"Иван Минчев", result:"8:59:33", year:2026},
+  {category:"vitosha", gender:"m", rank:"7", name:"Емил Генов", result:"9:03:07", year:2026},
   {category:"vitosha", gender:"m", rank:"10", name:"Иво Андреев", result:"9:04:40", year:2025},
   {category:"vitosha", gender:"m", rank:"10", name:"Julien Feutrie", result:"9:05:24", year:2024},
   {category:"vitosha", gender:"m", rank:"3", name:"Тодор Георгиев", result:"9:05:49", year:2020},
+  {category:"vitosha", gender:"m", rank:"8", name:"Кристиан Атанасов", result:"9:06:26", year:2026},
   {category:"vitosha", gender:"m", rank:"11", name:"Иво Андреев", result:"9:07:00", year:2024},
   {category:"vitosha", gender:"m", rank:"5", name:"Петко Стефанов", result:"9:07:02", year:2023},
   {category:"vitosha", gender:"m", rank:"11", name:"Фатих Хюсеин", result:"9:08:48", year:2025},
+  {category:"vitosha", gender:"m", rank:"9", name:"Преслав Пейнов", result:"9:09:22", year:2026},
+  {category:"vitosha", gender:"m", rank:"10", name:"Димитър Томев", result:"9:10:16", year:2026},
   {category:"vitosha", gender:"m", rank:"5", name:"Христо Цветков", result:"9:11:17", year:2018},
   {category:"vitosha", gender:"m", rank:"3", name:"Христо Минков", result:"9:11:35", year:2021},
   {category:"vitosha", gender:"m", rank:"4", name:"Росен Русев", result:"9:13:18", year:2021},
@@ -415,6 +544,7 @@ const ENTRIES = [
   {category:"vitosha", gender:"m", rank:"7", name:"Христо Минков", result:"9:15:51", year:2023},
   {category:"vitosha", gender:"m", rank:"6", name:"Станимир Димитров", result:"9:15:59", year:2018},
   {category:"vitosha", gender:"m", rank:"12", name:"Румен Костадинов", result:"9:16:32", year:2024},
+  {category:"vitosha", gender:"m", rank:"11", name:"Димитър Георгиев", result:"9:17:14", year:2026},
   {category:"vitosha", gender:"m", rank:"14", name:"Julien Feutrie", result:"9:17:37", year:2025},
   {category:"vitosha", gender:"m", rank:"8", name:"Димитър Цанков", result:"9:18:01", year:2023},
   {category:"vitosha", gender:"m", rank:"6", name:"Стилян Аврамов", result:"9:18:40", year:2022},
@@ -429,9 +559,11 @@ const ENTRIES = [
   {category:"vitosha", gender:"m", rank:"7", name:"Ивайло Хаджиев", result:"9:26:11", year:2019},
   {category:"vitosha", gender:"m", rank:"7", name:"Константин Атанасов", result:"9:27:23", year:2020},
   {category:"vitosha", gender:"m", rank:"14", name:"Калоян Чанев", result:"9:27:35", year:2024},
+  {category:"vitosha", gender:"m", rank:"12", name:"Николай Христов", result:"9:27:54", year:2026},
   {category:"vitosha", gender:"m", rank:"7", name:"Иван Гочев", result:"9:28:52", year:2018},
   {category:"vitosha", gender:"m", rank:"6", name:"Кольо Райчинов", result:"9:29:04", year:2021},
 
+  {category:"vitosha", gender:"f", rank:"1 (5)", name:"Мария Николова", result:"8:48:14", year:2026},
   {category:"vitosha", gender:"f", rank:"1 (6)", name:"Мария Николова", result:"8:56:39", year:2024},
   {category:"vitosha", gender:"f", rank:"2 (7)", name:"Моника Филипова", result:"8:57:10", year:2024},
   {category:"vitosha", gender:"f", rank:"3 (9)", name:"Надежда Ангелова", result:"8:57:35", year:2024},
@@ -450,9 +582,10 @@ const ENTRIES = [
   {category:"vitosha", gender:"f", rank:"2 (13)", name:"Надежда Ангелова", result:"10:00:15", year:2018},
   {category:"vitosha", gender:"f", rank:"5 (29)", name:"Антония Георгиева", result:"10:02:48", year:2024},
   {category:"vitosha", gender:"f", rank:"2 (16)", name:"Моника Филипова", result:"10:19:14", year:2019},
+  {category:"vitosha", gender:"f", rank:"2 (27)", name:"Златка Вълчева", result:"10:27:34", year:2026},
   {category:"vitosha", gender:"f", rank:"3 (37)", name:"Нели Петкова", result:"10:28:53", year:2025},
-  {category:"vitosha", gender:"f", rank:"2 (11)", name:"Елеонора Григорова", result:"10:39:51", year:2017},
-  {category:"vitosha", gender:"f", rank:"3 (14)", name:"Моника Филипова", result:"10:40:43", year:2020},
+  //{category:"vitosha", gender:"f", rank:"2 (11)", name:"Елеонора Григорова", result:"10:39:51", year:2017},
+  //{category:"vitosha", gender:"f", rank:"3 (14)", name:"Моника Филипова", result:"10:40:43", year:2020},
 
   // ── Vitosha (old) ──────────────────────────────────
   {category:"vitosha-old", gender:"m", rank:"X", name:"Кирил Николов", result:"7:39:40", year:2016},
@@ -1000,11 +1133,11 @@ function renderRankings(key) {
 
   rankingsTables.innerHTML = `
     <div class="rank-table-wrap">
-      <div class="rank-table-title male">♂ Мъже · ${label}</div>
+      <div class="rank-table-title male">♂ Мъже · ${label} <span class="im-counter">(${mEntries.length})</span></div>
       ${buildTable(mEntries, 'm')}
     </div>
     <div class="rank-table-wrap">
-      <div class="rank-table-title female">♀ Жени · ${label}</div>
+      <div class="rank-table-title female">♀ Жени · ${label} <span class="im-counter">(${fEntries.length})</span></div>
       ${buildTable(fEntries, 'f')}
     </div>`;
 }
@@ -1338,10 +1471,13 @@ function renderRankings(key) {
       const prior = nameSeenCount[e.name] || 0;
       nameSeenCount[e.name] = prior + 1;
       const nameDisplay = nameTotalsV[e.name] > 1 ? `${e.name} <span class="name-count">${prior + 1}</span>` : e.name;
+      const nameCell = e.url
+        ? `<a href="${e.url}" target="_blank" rel="noopener">${nameDisplay}</a>`
+        : nameDisplay;
       return `
       <tr>
         <td class="rank-num ${rankClass(i)}">${i + 1}</td>
-        <td class="rank-name">${nameDisplay}</td>
+        <td class="rank-name">${nameCell}</td>
         <td class="rank-result">${e.result}</td>
         <td class="rank-year">${e.year}</td>
         <td class="rank-year">${e.rank}</td>
@@ -1358,8 +1494,8 @@ function renderRankings(key) {
             <th>Резултат</th>
             <th>Година</th>
             <th>Позиция</th>
-            ${isMale   ? `<th class="rank-equiv-head">Еквивалент (Шосе)</th>` : ''}
-            ${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}
+            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-road">Еквивалент (Шосе)</th>` : ''}
+            ${isFemale ? `<th class="rank-equiv-head" data-tooltip="vitosha-gender">Еквивалент (Мъже)</th>` : ''}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1386,8 +1522,14 @@ function renderRankings(key) {
       return entries.filter(e => e.name.toLowerCase().includes(q));
     }
 
-    vMaleWrap.innerHTML   = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'm'))), 'm');
-    vFemaleWrap.innerHTML = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'f'))), 'f');
+    const mEntries = applySearch(applyBest(all.filter(e => e.gender === 'm')));
+    const fEntries = applySearch(applyBest(all.filter(e => e.gender === 'f')));
+    vMaleWrap.innerHTML   = buildVitoshaTable(mEntries, 'm');
+    vFemaleWrap.innerHTML = buildVitoshaTable(fEntries, 'f');
+    const vMaleCount = document.getElementById('vMaleCount');
+    const vFemaleCount = document.getElementById('vFemaleCount');
+    if (vMaleCount)   vMaleCount.textContent   = '(' + mEntries.length + ')';
+    if (vFemaleCount) vFemaleCount.textContent = '(' + fEntries.length + ')';
   }
 
   vSearchBox.addEventListener('input', renderVitosha);
@@ -1426,10 +1568,13 @@ function renderRankings(key) {
       const prior = nameSeenCount[e.name] || 0;
       nameSeenCount[e.name] = prior + 1;
       const nameDisplay = nameTotalsVO[e.name] > 1 ? `${e.name} <span class="name-count">${prior + 1}</span>` : e.name;
+      const nameCell = e.url
+        ? `<a href="${e.url}" target="_blank" rel="noopener">${nameDisplay}</a>`
+        : nameDisplay;
       return `
       <tr>
         <td class="rank-num ${rankClass(i)}">${i + 1}</td>
-        <td class="rank-name">${nameDisplay}</td>
+        <td class="rank-name">${nameCell}</td>
         <td class="rank-result">${e.result}</td>
         <td class="rank-year">${e.year}</td>
         <td class="rank-year">${e.rank}</td>
@@ -1446,8 +1591,8 @@ function renderRankings(key) {
             <th>Резултат</th>
             <th>Година</th>
             <th>Позиция</th>
-            ${isMale   ? `<th class="rank-equiv-head">Екв. Ново Трасе</th>` : ''}
-            ${isFemale ? `<th class="rank-equiv-head">Екв. Ново Трасе</th>` : ''}
+            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Екв. Ново Трасе</th>` : ''}
+            ${isFemale ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Екв. Ново Трасе</th>` : ''}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1474,8 +1619,14 @@ function renderRankings(key) {
       return entries.filter(e => e.name.toLowerCase().includes(q));
     }
 
-    vMaleWrap.innerHTML   = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'm'))), 'm');
-    vFemaleWrap.innerHTML = buildVitoshaTable(applySearch(applyBest(all.filter(e => e.gender === 'f'))), 'f');
+    const mEntries = applySearch(applyBest(all.filter(e => e.gender === 'm')));
+    const fEntries = applySearch(applyBest(all.filter(e => e.gender === 'f')));
+    vMaleWrap.innerHTML   = buildVitoshaTable(mEntries, 'm');
+    vFemaleWrap.innerHTML = buildVitoshaTable(fEntries, 'f');
+    const voMaleCount = document.getElementById('voMaleCount');
+    const voFemaleCount = document.getElementById('voFemaleCount');
+    if (voMaleCount)   voMaleCount.textContent   = '(' + mEntries.length + ')';
+    if (voFemaleCount) voFemaleCount.textContent = '(' + fEntries.length + ')';
   }
 
   vSearchBox.addEventListener('input', renderVitoshaOld);
@@ -1527,7 +1678,7 @@ function renderRankings(key) {
       </tr>`).join('');
     return `
       <table>
-        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Еквивалент Полумаратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head" data-tooltip="marathon-to-half">Еквивалент Полумаратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head" data-tooltip="marathon-gender">Еквивалент (Мъже)</th>` : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -1541,8 +1692,14 @@ function renderRankings(key) {
     function applySearch(entries) {
       return q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
     }
-    mMaleWrap.innerHTML   = buildTable(applySearch(males), 'm');
-    mFemaleWrap.innerHTML = buildTable(applySearch(females), 'f');
+    const mFiltered = applySearch(males);
+    const fFiltered = applySearch(females);
+    mMaleWrap.innerHTML   = buildTable(mFiltered, 'm');
+    mFemaleWrap.innerHTML = buildTable(fFiltered, 'f');
+    const mMaleCount = document.getElementById('mMaleCount');
+    const mFemaleCount = document.getElementById('mFemaleCount');
+    if (mMaleCount)   mMaleCount.textContent   = '(' + mFiltered.length + ')';
+    if (mFemaleCount) mFemaleCount.textContent = '(' + fFiltered.length + ')';
   }
 
   mSearchBox.addEventListener('input', renderMarathon);
@@ -1590,7 +1747,7 @@ function renderRankings(key) {
       </tr>`).join('');
     return `
       <table>
-        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head">Еквивалент Маратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head">Еквивалент (Мъже)</th>` : ''}</tr></thead>
+        <thead><tr><th>#</th><th>Спортист</th><th>Резултат</th><th>Година</th><th>Събитие</th>${isMale ? `<th class="rank-equiv-head" data-tooltip="half-to-marathon">Еквивалент Маратон</th>` : ''}${isFemale ? `<th class="rank-equiv-head" data-tooltip="half-gender">Еквивалент (Мъже)</th>` : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -1604,8 +1761,14 @@ function renderRankings(key) {
     function applySearch(entries) {
       return q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
     }
-    hMaleWrap.innerHTML   = buildTable(applySearch(males), 'm');
-    hFemaleWrap.innerHTML = buildTable(applySearch(females), 'f');
+    const mFiltered = applySearch(males);
+    const fFiltered = applySearch(females);
+    hMaleWrap.innerHTML   = buildTable(mFiltered, 'm');
+    hFemaleWrap.innerHTML = buildTable(fFiltered, 'f');
+    const hMaleCount = document.getElementById('hMaleCount');
+    const hFemaleCount = document.getElementById('hFemaleCount');
+    if (hMaleCount)   hMaleCount.textContent   = '(' + mFiltered.length + ')';
+    if (hFemaleCount) hFemaleCount.textContent = '(' + fFiltered.length + ')';
   }
 
   hSearchBox.addEventListener('input', renderHalf);
@@ -2076,6 +2239,191 @@ function renderRankings(key) {
   inResult.addEventListener('input', calc);
   inWR.addEventListener('input', calc);
   calc(); // pre-calculate with default values
+})();
+
+/* ═══════════════════════════════════════════════════════
+   EQUIV TOOLTIP
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const tip = document.getElementById('equivTooltip');
+  const toS = t => { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + (p[2]||0); };
+  const fmt4 = n => n.toFixed(4);
+
+  // Format average seconds back to h:mm:ss
+  function fmtAvg(secsArr) {
+    const avg = Math.round(secsArr.reduce((a, b) => a + b, 0) / secsArr.length);
+    const h = Math.floor(avg / 3600);
+    const m = Math.floor((avg % 3600) / 60).toString().padStart(2, '0');
+    const s = (avg % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  // Build a standard 3-col grid list (pos | colA | colB) with avg row above pos 1
+  function buildList(rows, hdrA, hdrB, classA, classB, avgA, avgB) {
+    const dataRows = rows.map(r =>
+      `<span>${r.pos}</span><span class="${classA}">${r.a}</span><span class="${classB}">${r.b}</span>`
+    ).join('');
+    return `
+      <div class="ett-list">
+        <span class="ett-list-hdr">#</span>
+        <span class="ett-list-hdr ${classA}">${hdrA}</span>
+        <span class="ett-list-hdr ${classB}">${hdrB}</span>
+        <span class="ett-avg-lbl">avg</span>
+        <span class="ett-avg-val ${classA}">${avgA}</span>
+        <span class="ett-avg-val ${classB}">${avgB}</span>
+        ${dataRows}
+      </div>`;
+  }
+
+  // Build tooltip HTML for a given data-tooltip key
+  function buildContent(key) {
+    switch (key) {
+
+      case 'vitosha-road': {
+        const f = DISTANCE_FACTORS['vitosha'];
+        return `
+          <div class="ett-title">Еквивалент (Шосе) · Витоша 100</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          <div class="ett-list">
+            <span class="ett-list-hdr">#</span><span class="ett-list-hdr">Стара</span><span class="ett-list-hdr">Нова</span>
+            <span>—</span><span style="color:var(--text-muted)">Фиксиран</span><span style="color:var(--text-muted)">коефициент</span>
+          </div>`;
+      }
+
+      case 'vitosha-gender': {
+        const f = GENDER_FACTORS['vitosha'];
+        // Only Comrades + WSER (100km road excluded from formula)
+        const disciplines = [
+          { label: 'Комрадс',        key: 'comrades'       },
+          { label: 'Уестърн Стейтс', key: 'western-states' },
+        ];
+        const cols = disciplines.map(d => {
+          const refs = GENDER_RATIO_REFS[d.key];
+          const df = calcGenderFactor(refs);
+          const avgM = fmtAvg(refs.map(r => toS(r.m)));
+          const avgF = fmtAvg(refs.map(r => toS(r.f)));
+          const listHtml = buildList(
+            refs.map(r => ({ pos: r.pos, a: r.m, b: r.f })),
+            '♂', '♀', 'ett-m', 'ett-f', avgM, avgF
+          );
+          return `
+            <div>
+              <div class="ett-col-label">${d.label} <span class="ett-col-coef">${fmt4(df)}</span></div>
+              ${listHtml}
+            </div>`;
+        }).join('');
+        return `
+          <div class="ett-title">Еквивалент (Мъже) · Витоша 100</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)} <span class="ett-coef-sub">(средно от 2)</span></div>
+          <div class="ett-cols">${cols}</div>`;
+      }
+
+      case 'vitosha-old-road': {
+        const f = DISTANCE_FACTORS['vitosha-old'];
+        return `
+          <div class="ett-title">Екв. Ново Трасе · Витоша (90 км)</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          <div class="ett-list">
+            <span class="ett-list-hdr">#</span><span class="ett-list-hdr">—</span><span class="ett-list-hdr">—</span>
+            <span>—</span><span style="color:var(--text-muted)">Фиксиран</span><span style="color:var(--text-muted)">коефициент</span>
+          </div>`;
+      }
+
+      case 'marathon-to-half': {
+        const refs     = TOP10_REFS['marathon'];
+        const halfRefs = TOP10_REFS['half'];
+        const ratios   = refs.map((r, i) => toS(halfRefs[i].m) / toS(r.m));
+        const f        = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        const avgA     = fmtAvg(refs.map(r => toS(r.m)));
+        const avgB     = fmtAvg(halfRefs.map(r => toS(r.m)));
+        return `
+          <div class="ett-title">Еквивалент Полумаратон</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          ${buildList(
+            refs.map((r, i) => ({ pos: r.pos, a: r.m, b: halfRefs[i].m })),
+            'Маратон ♂', 'Полумар. ♂', 'ett-m', 'ett-m', avgA, avgB
+          )}`;
+      }
+
+      case 'marathon-gender': {
+        const refs   = TOP10_REFS['marathon'];
+        const ratios = refs.map(r => toS(r.f) / toS(r.m));
+        const f      = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        const avgM   = fmtAvg(refs.map(r => toS(r.m)));
+        const avgF   = fmtAvg(refs.map(r => toS(r.f)));
+        return `
+          <div class="ett-title">Еквивалент (Мъже) · Маратон</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          ${buildList(
+            refs.map(r => ({ pos: r.pos, a: r.m, b: r.f })),
+            '♂', '♀', 'ett-m', 'ett-f', avgM, avgF
+          )}`;
+      }
+
+      case 'half-to-marathon': {
+        const refs   = TOP10_REFS['half'];
+        const mRefs  = TOP10_REFS['marathon'];
+        const ratios = refs.map((r, i) => toS(mRefs[i].m) / toS(r.m));
+        const f      = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        const avgA   = fmtAvg(refs.map(r => toS(r.m)));
+        const avgB   = fmtAvg(mRefs.map(r => toS(r.m)));
+        return `
+          <div class="ett-title">Еквивалент Маратон</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          ${buildList(
+            refs.map((r, i) => ({ pos: r.pos, a: r.m, b: mRefs[i].m })),
+            'Полумар. ♂', 'Маратон ♂', 'ett-m', 'ett-m', avgA, avgB
+          )}`;
+      }
+
+      case 'half-gender': {
+        const refs   = TOP10_REFS['half'];
+        const ratios = refs.map(r => toS(r.f) / toS(r.m));
+        const f      = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+        const avgM   = fmtAvg(refs.map(r => toS(r.m)));
+        const avgF   = fmtAvg(refs.map(r => toS(r.f)));
+        return `
+          <div class="ett-title">Еквивалент (Мъже) · Полумаратон</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
+          ${buildList(
+            refs.map(r => ({ pos: r.pos, a: r.m, b: r.f })),
+            '♂', '♀', 'ett-m', 'ett-f', avgM, avgF
+          )}`;
+      }
+
+      default: return '';
+    }
+  }
+
+  // Use event delegation so dynamically-rendered headers are always covered
+  document.addEventListener('mouseover', function(e) {
+    const th = e.target.closest('th.rank-equiv-head[data-tooltip]');
+    if (!th) return;
+    tip.innerHTML = buildContent(th.dataset.tooltip);
+    tip.style.display = 'block';
+    positionTip(e);
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'none') return;
+    positionTip(e);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const th = e.target.closest('th.rank-equiv-head[data-tooltip]');
+    if (!th) return;
+    tip.style.display = 'none';
+  });
+
+  function positionTip(e) {
+    const pad = 14;
+    const tw = tip.offsetWidth, th2 = tip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - pad;
+    if (y + th2 > window.innerHeight - 8) y = e.clientY - th2 - pad;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
 })();
 
 }); // end DOMContentLoaded
@@ -2649,7 +2997,7 @@ function renderRankings(key) {
     flex-wrap: wrap;
     gap: 0.75rem;
     align-items: center;
-    margin-bottom: 0;
+    margin-bottom: 1.5rem;
   }
   .ironman-filters label {
     font-family: 'Barlow Condensed', sans-serif;
@@ -3201,9 +3549,122 @@ function renderRankings(key) {
   .pc-level-bot    { color: var(--text-muted); }
   .pc-level-bot .pc-bar-fill    { background: var(--text-muted); }
 
+  /* ── EQUIV TOOLTIP ── */
+  .rank-equiv-head[data-tooltip] {
+    cursor: help;
+    text-decoration: underline dotted 1px;
+    text-underline-offset: 3px;
+  }
+  #equivTooltip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    min-width: 220px;
+    max-width: 560px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  #equivTooltip .ett-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+  }
+  #equivTooltip .ett-coef {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+    font-variant-numeric: tabular-nums;
+  }
+  #equivTooltip .ett-coef-sub {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 0.4rem;
+  }
+  /* side-by-side columns wrapper for vitosha-gender */
+  #equivTooltip .ett-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1.2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.5rem;
+  }
+  #equivTooltip .ett-col-label {
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  #equivTooltip .ett-col-coef {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0;
+  }
+  /* inner grid for each column of times */
+  #equivTooltip .ett-list {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 0.4rem;
+    display: grid;
+    grid-template-columns: 1.2rem 1fr 1fr;
+    gap: 0.15rem 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+  /* when ett-list is a direct child of ett-cols (vitosha-gender single column) */
+  #equivTooltip .ett-cols > .ett-list {
+    border-top: none;
+    padding-top: 0;
+  }
+  #equivTooltip .ett-list-hdr {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-bottom: 0.15rem;
+  }
+  #equivTooltip .ett-m { color: var(--male); }
+  #equivTooltip .ett-f { color: var(--female); }
+  /* average row — sits above pos 1, separated by a hairline */
+  #equivTooltip .ett-avg-lbl {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
+  }
+  #equivTooltip .ett-avg-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
+  }
+  #equivTooltip .ett-avg-val.ett-m { color: var(--male); }
+  #equivTooltip .ett-avg-val.ett-f { color: var(--female); }
+  /* old disc-label kept for compat — unused now */
+  #equivTooltip .ett-disc-label { display: none; }
+  #equivTooltip .ett-disc-coef  { display: none; }
 </style>
 </head>
 <body>
+
+<div id="equivTooltip"></div>
 
 <header>
   <div class="header-flag">
@@ -3296,7 +3757,7 @@ function renderRankings(key) {
 </div>
 <div id="pageVitosha" class="page">
   <div class="ironman-header">
-    <h2>Витоша 100 Ранглиста (2017-2025)</h2>
+    <h2>Витоша 100 Ранглиста (2017-2026)</h2>
     <p class="perf-subtitle">Най-силни резултати в Обиколката на Витоша. За приравняванията е използвано отношението към топ 10 времена в света на Western States Endurance Run, Comrades Marathon и 100 км на шосе.</p>
   </div>
   <div class="ironman-filters">
@@ -3307,11 +3768,11 @@ function renderRankings(key) {
   </div>
   <div class="ironman-tables">
     <div>
-      <div class="im-table-title male">♂ Мъже</div>
+      <div class="im-table-title male">♂ Мъже <span class="im-counter" id="vMaleCount"></span></div>
       <div id="vMaleWrap"></div>
     </div>
     <div>
-      <div class="im-table-title female">♀ Жени</div>
+      <div class="im-table-title female">♀ Жени <span class="im-counter" id="vFemaleCount"></span></div>
       <div id="vFemaleWrap"></div>
     </div>
   </div>
@@ -3328,11 +3789,11 @@ function renderRankings(key) {
   </div>
   <div class="ironman-tables">
     <div>
-      <div class="im-table-title male">♂ Мъже</div>
+      <div class="im-table-title male">♂ Мъже <span class="im-counter" id="voMaleCount"></span></div>
       <div id="voMaleWrap"></div>
     </div>
     <div>
-      <div class="im-table-title female">♀ Жени</div>
+      <div class="im-table-title female">♀ Жени <span class="im-counter" id="voFemaleCount"></span></div>
       <div id="voFemaleWrap"></div>
     </div>
   </div>
@@ -3348,11 +3809,11 @@ function renderRankings(key) {
   </div>
   <div class="ironman-tables">
     <div>
-      <div class="im-table-title male">♂ Мъже</div>
+      <div class="im-table-title male">♂ Мъже <span class="im-counter" id="mMaleCount"></span></div>
       <div id="mMaleWrap"></div>
     </div>
     <div>
-      <div class="im-table-title female">♀ Жени</div>
+      <div class="im-table-title female">♀ Жени <span class="im-counter" id="mFemaleCount"></span></div>
       <div id="mFemaleWrap"></div>
     </div>
   </div>
@@ -3368,11 +3829,11 @@ function renderRankings(key) {
   </div>
   <div class="ironman-tables">
     <div>
-      <div class="im-table-title male">♂ Мъже</div>
+      <div class="im-table-title male">♂ Мъже <span class="im-counter" id="hMaleCount"></span></div>
       <div id="hMaleWrap"></div>
     </div>
     <div>
-      <div class="im-table-title female">♀ Жени</div>
+      <div class="im-table-title female">♀ Жени <span class="im-counter" id="hFemaleCount"></span></div>
       <div id="hFemaleWrap"></div>
     </div>
   </div>
