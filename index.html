@@ -1526,10 +1526,10 @@ function renderRankings(key) {
       speedBonusMap[name] = speedPts[idx];
     });
 
-    // Accumulate per-person data
-    const data = {}; // name → { pts, breakdown[] }
+    // Accumulate per-person data — keep items in typed buckets for ordered display
+    const data = {}; // name → { pts, podium[], crItems[], speedItems[], oldPodium[] }
     function ensure(name) {
-      if (!data[name]) data[name] = { pts: 0, breakdown: [] };
+      if (!data[name]) data[name] = { pts: 0, podium: [], crItems: [], speedItems: [], oldPodium: [] };
     }
 
     // New course podium points
@@ -1542,7 +1542,7 @@ function renderRankings(key) {
       if (pts > 0) {
         ensure(e.name);
         data[e.name].pts += pts;
-        data[e.name].breakdown.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts });
+        data[e.name].podium.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts, year: e.year });
       }
     });
 
@@ -1551,7 +1551,7 @@ function renderRankings(key) {
       const b = speedPts[idx];
       ensure(name);
       data[name].pts += b;
-      data[name].breakdown.push({ label: `⚡ Топ ${idx + 1} резултат`, pts: b });
+      data[name].speedItems.push({ label: `⚡ Топ ${idx + 1} резултат`, pts: b });
     });
 
     // Old course podium points
@@ -1563,21 +1563,68 @@ function renderRankings(key) {
       if (pts > 0) {
         ensure(e.name);
         data[e.name].pts += pts;
-        data[e.name].breakdown.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} (старо) ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts });
+        data[e.name].oldPodium.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} (старо) ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts, year: e.year });
       }
     });
 
+    // Course record bonus (new course only): points = years elapsed since the
+    // previous record (or since 2017 for the first record, counting 2017→2017 = 1).
+    // 2017 is the first year, so the "previous record year" for the first CR is 2016
+    // (i.e. 2017 - 2016 = 1 pt). For subsequent records: crYear - prevCrYear pts.
+    function detectCourseRecords(entries) {
+      const yearBest = {};
+      entries.forEach(e => {
+        const s = toSec(e.result);
+        if (s === Infinity) return;
+        if (!yearBest[e.year] || s < yearBest[e.year]) yearBest[e.year] = s;
+      });
+      const years = Object.keys(yearBest).map(Number).sort((a, b) => a - b);
+      const crSet = {};
+      let crSec = Infinity;
+      let prevCrYear = 2016; // one before the first possible year
+      years.forEach(yr => {
+        const best = yearBest[yr];
+        if (best < crSec) {
+          crSec = best;
+          const pts = yr - prevCrYear;
+          const match = entries.filter(e => e.year === yr && toSec(e.result) === best)[0];
+          if (match) crSet[yr] = { name: match.name, result: match.result, pts };
+          prevCrYear = yr;
+        }
+      });
+      return crSet;
+    }
+
+    const newCRs = detectCourseRecords(newEntries);
+
+    Object.entries(newCRs).forEach(([yr, cr]) => {
+      ensure(cr.name);
+      data[cr.name].pts += cr.pts;
+      data[cr.name].crItems.push({ label: `📋 ${yr} рекорд (${cr.result})`, pts: cr.pts, year: Number(yr) });
+    });
+
+    // Assemble final breakdown in display order:
+    // 1. New podium (desc year), 2. Course records (desc year),
+    // 3. Speed bonus, 4. Old podium (desc year)
     return Object.entries(data)
-      .map(([name, d]) => ({
-        name,
-        pts: d.pts,
-        breakdown: d.breakdown,
-        bestResult:     bestTimeMap[name] ? bestTimeMap[name].result         : null,
-        bestYear:       bestTimeMap[name] ? bestTimeMap[name].year           : null,
-        bestSec:        bestTimeMap[name] ? bestTimeMap[name].sec            : Infinity,
-        converted:      bestTimeMap[name] ? bestTimeMap[name].converted      : false,
-        originalResult: bestTimeMap[name] ? bestTimeMap[name].originalResult : null,
-      }))
+      .map(([name, d]) => {
+        const breakdown = [
+          ...d.podium.sort((a, b) => b.year - a.year),
+          ...d.crItems.sort((a, b) => b.year - a.year),
+          ...d.speedItems,
+          ...d.oldPodium.sort((a, b) => b.year - a.year),
+        ];
+        return {
+          name,
+          pts: d.pts,
+          breakdown,
+          bestResult:     bestTimeMap[name] ? bestTimeMap[name].result         : null,
+          bestYear:       bestTimeMap[name] ? bestTimeMap[name].year           : null,
+          bestSec:        bestTimeMap[name] ? bestTimeMap[name].sec            : Infinity,
+          converted:      bestTimeMap[name] ? bestTimeMap[name].converted      : false,
+          originalResult: bestTimeMap[name] ? bestTimeMap[name].originalResult : null,
+        };
+      })
       .filter(r => r.pts > 0);
   }
 
@@ -2623,17 +2670,22 @@ function renderRankings(key) {
           <div class="ett-title">Точки за дълголетие · Витоша 100</div>
           <div style="font-size:0.83rem;color:var(--text-dim);line-height:1.6;margin-top:0.2rem">
             <div style="margin-bottom:0.5rem">
-              <span style="color:var(--accent);font-weight:600">Ново трасе (2017–2026)</span><br>
+              <span style="color:var(--accent);font-weight:600">Подиум ново трасе (2017–2026)</span><br>
               🥇 1-во място → <b>3 т.</b> &nbsp;|&nbsp; 🥈 2-ро → <b>2 т.</b> &nbsp;|&nbsp; 🥉 3-то → <b>1 т.</b>
+            </div>
+            <div>
+              <span style="color:var(--accent);font-weight:600">Рекорд на трасето</span><br>
+              📋 Точки = години от предишния рекорд<br>
             </div>
             <div style="margin-bottom:0.5rem">
               <span style="color:var(--accent);font-weight:600">Топ 5 най-бързи на трасето</span><br>
               ⚡ 1-во → <b>+5 т.</b> &nbsp; 2-ро → <b>+4 т.</b> &nbsp; 3-то → <b>+3 т.</b> &nbsp; 4-то → <b>+2 т.</b> &nbsp; 5-то → <b>+1 т.</b><br>
             </div>
-            <div>
-              <span style="color:var(--accent);font-weight:600">Старо трасе (2005–2016)</span><br>
+            <div style="margin-bottom:0.5rem">
+              <span style="color:var(--accent);font-weight:600">Подиум старо трасе (2005–2016)</span><br>
               🥇 1-во място → <b>2 т.</b> &nbsp;|&nbsp; 🥈 2-ро или 🥉 3-то → <b>1 т.</b>
             </div>
+
           </div>`;
       }
 
