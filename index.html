@@ -1448,11 +1448,199 @@ function renderRankings(key) {
   const vMaleWrap   = document.getElementById('vMaleWrap');
   const vFemaleWrap = document.getElementById('vFemaleWrap');
   const bestOnlyV   = document.getElementById('vBestOnly');
+  const longevityV  = document.getElementById('vLongevity');
 
   function toSec(t) {
     const parts = t.split(':').map(Number);
     if (parts.some(isNaN)) return Infinity;
     return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  }
+
+  // Parse numeric finish position from rank strings like "1", "2 (7)", "1 (5)", "X"
+  function parseFinishPos(rankStr) {
+    if (!rankStr) return null;
+    const s = String(rankStr).trim();
+    const m = s.match(/^(\d+)/);
+    if (!m) return null;
+    return parseInt(m[1], 10);
+  }
+
+  // Compute longevity points for a given gender across both vitosha courses
+  // Format seconds to h:mm:ss
+  function fmtSec(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    const sc = (s % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${sc}`;
+  }
+
+  // Returns array of { name, pts, bestResult, bestYear, bestSec, converted, breakdown[] }
+  function computeLongevity(gender) {
+    const newEntries = ENTRIES.filter(e => e.category === 'vitosha' && e.gender === gender);
+    const oldEntries = ENTRIES.filter(e => e.category === 'vitosha-old' && e.gender === gender);
+
+    // Best time + year per person (new course only, for display)
+    const bestTimeMap = {}; // name → { result, year, sec, converted }
+    newEntries.forEach(e => {
+      const s = toSec(e.result);
+      if (!bestTimeMap[e.name] || s < bestTimeMap[e.name].sec) {
+        bestTimeMap[e.name] = { result: e.result, year: e.year, sec: s, converted: false };
+      }
+    });
+
+    // For runners with no new-course result, convert best old-course time
+    const oldFactor = DISTANCE_FACTORS['vitosha-old']; // old → new multiplier
+    // First pass: find best old-course time per person (original, pre-conversion)
+    const bestOldTimeMap = {}; // name → best original old-course result string
+    oldEntries.forEach(e => {
+      const s = toSec(e.result);
+      if (s === Infinity) return;
+      if (!bestOldTimeMap[e.name] || s < toSec(bestOldTimeMap[e.name])) {
+        bestOldTimeMap[e.name] = e.result;
+      }
+    });
+    // Second pass: assign converted time for those with no new-course entry
+    oldEntries.forEach(e => {
+      if (bestTimeMap[e.name]) return; // already has a new-course time
+      const s = toSec(e.result);
+      if (s === Infinity) return;
+      const convertedSec = Math.round(s * oldFactor);
+      if (!bestTimeMap[e.name] || convertedSec < bestTimeMap[e.name].sec) {
+        bestTimeMap[e.name] = {
+          result: fmtSec(convertedSec),
+          year: e.year,
+          sec: convertedSec,
+          converted: true,
+          originalResult: bestOldTimeMap[e.name] || e.result,
+        };
+      }
+    });
+
+    // Speed bonus: top 5 fastest people by best personal time on new course
+    const sortedBySpeed = Object.entries(bestTimeMap)
+      .sort((a, b) => a[1].sec - b[1].sec)
+      .slice(0, 5);
+    const speedBonusMap = {};
+    const speedPts = [5, 4, 3, 2, 1];
+    sortedBySpeed.forEach(([name], idx) => {
+      speedBonusMap[name] = speedPts[idx];
+    });
+
+    // Accumulate per-person data
+    const data = {}; // name → { pts, breakdown[] }
+    function ensure(name) {
+      if (!data[name]) data[name] = { pts: 0, breakdown: [] };
+    }
+
+    // New course podium points
+    newEntries.forEach(e => {
+      const pos = parseFinishPos(e.rank);
+      let pts = 0;
+      if (pos === 1) pts = 3;
+      else if (pos === 2) pts = 2;
+      else if (pos === 3) pts = 1;
+      if (pts > 0) {
+        ensure(e.name);
+        data[e.name].pts += pts;
+        data[e.name].breakdown.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts });
+      }
+    });
+
+    // Speed bonus
+    sortedBySpeed.forEach(([name], idx) => {
+      const b = speedPts[idx];
+      ensure(name);
+      data[name].pts += b;
+      data[name].breakdown.push({ label: `⚡ Топ ${idx + 1} резултат`, pts: b });
+    });
+
+    // Old course podium points
+    oldEntries.forEach(e => {
+      const pos = parseFinishPos(e.rank);
+      let pts = 0;
+      if (pos === 1) pts = 2;
+      else if (pos === 2 || pos === 3) pts = 1;
+      if (pts > 0) {
+        ensure(e.name);
+        data[e.name].pts += pts;
+        data[e.name].breakdown.push({ label: `${pos === 1 ? '🥇' : pos === 2 ? '🥈' : '🥉'} ${e.year} (старо) ${pos === 1 ? '1-во' : pos === 2 ? '2-ро' : '3-то'} място`, pts });
+      }
+    });
+
+    return Object.entries(data)
+      .map(([name, d]) => ({
+        name,
+        pts: d.pts,
+        breakdown: d.breakdown,
+        bestResult:     bestTimeMap[name] ? bestTimeMap[name].result         : null,
+        bestYear:       bestTimeMap[name] ? bestTimeMap[name].year           : null,
+        bestSec:        bestTimeMap[name] ? bestTimeMap[name].sec            : Infinity,
+        converted:      bestTimeMap[name] ? bestTimeMap[name].converted      : false,
+        originalResult: bestTimeMap[name] ? bestTimeMap[name].originalResult : null,
+      }))
+      .filter(r => r.pts > 0);
+  }
+
+  // Sort state for longevity table: 'pts' (desc) or 'time' (asc)
+  const longevitySort = { m: 'pts', f: 'pts' };
+  // Show-all state per gender (reset when longevity checkbox is toggled)
+  const longevityShowAll = { m: false, f: false };
+
+  function buildLongevityTable(baseRows, gender) {
+    if (baseRows.length === 0) {
+      return `<div class="empty-state">Няма въведени резултати.</div>`;
+    }
+
+    const sortKey = longevitySort[gender];
+    const rows = [...baseRows].sort((a, b) => {
+      if (sortKey === 'time') return a.bestSec - b.bestSec;
+      return b.pts - a.pts || a.bestSec - b.bestSec;
+    });
+
+    const showAll = longevityShowAll[gender];
+    const MIN_PTS = 2;
+    const hiddenCount = rows.filter(r => r.pts < MIN_PTS).length;
+    const visibleRows = showAll ? rows : rows.filter(r => r.pts >= MIN_PTS);
+
+    const tableRows = visibleRows.map((r, i) => {
+      const breakdownJson = JSON.stringify(r.breakdown).replace(/"/g, '&quot;');
+      const resultDisplay = r.bestResult
+        ? (r.converted
+            ? `<span class="lng-ast" data-orig="${r.originalResult}">*</span> ${r.bestResult}`
+            : r.bestResult)
+        : '—';
+      const yearDisplay = r.bestYear ? r.bestYear : '—';
+      return `
+      <tr>
+        <td class="rank-num ${rankClass(i)}">${i + 1}</td>
+        <td class="rank-name">${r.name}</td>
+        <td class="rank-result">${resultDisplay}</td>
+        <td class="rank-year">${yearDisplay}</td>
+        <td class="lng-pts" data-pts="${breakdownJson}">${r.pts}</td>
+      </tr>`;
+    }).join('');
+
+    const showAllBtn = (!showAll && hiddenCount > 0)
+      ? `<div class="lng-show-all-wrap"><button class="lng-show-all-btn" data-gender="${gender}">покажи всички (${hiddenCount})</button></div>`
+      : '';
+
+    const timeSortClass = sortKey === 'time' ? 'lng-sort-active' : '';
+    const ptsSortClass  = sortKey === 'pts'  ? 'lng-sort-active' : '';
+
+    return `
+      <table class="lng-table" data-gender="${gender}">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Спортист</th>
+            <th class="lng-sort-th ${timeSortClass}" data-sort="time" data-gender="${gender}">Резултат ↕</th>
+            <th>Година</th>
+            <th class="rank-equiv-head lng-sort-th ${ptsSortClass}" data-tooltip="vitosha-longevity" data-sort="pts" data-gender="${gender}">Точки ↕</th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      ${showAllBtn}`;
   }
 
   function buildVitoshaTable(entries, gender) {
@@ -1502,8 +1690,33 @@ function renderRankings(key) {
       </table>`;
   }
 
+  // Cached longevity rows per gender (recomputed once per render, re-sorted on column click)
+  let longevityCacheM = null;
+  let longevityCacheF = null;
+
+  function renderLongevity(q) {
+    if (!longevityCacheM) longevityCacheM = computeLongevity('m');
+    if (!longevityCacheF) longevityCacheF = computeLongevity('f');
+    const vMaleCount   = document.getElementById('vMaleCount');
+    const vFemaleCount = document.getElementById('vFemaleCount');
+    const mRows = longevityCacheM.filter(r => !q || r.name.toLowerCase().includes(q));
+    const fRows = longevityCacheF.filter(r => !q || r.name.toLowerCase().includes(q));
+    vMaleWrap.innerHTML   = buildLongevityTable(mRows, 'm');
+    vFemaleWrap.innerHTML = buildLongevityTable(fRows, 'f');
+    if (vMaleCount)   vMaleCount.textContent = '(' + mRows.length + ')';
+    if (vFemaleCount) vFemaleCount.textContent = '(' + fRows.length + ')';
+  }
+
   function renderVitosha() {
     const q = vSearchBox.value.trim().toLowerCase();
+    const vMaleCount   = document.getElementById('vMaleCount');
+    const vFemaleCount = document.getElementById('vFemaleCount');
+
+    if (longevityV.checked) {
+      renderLongevity(q);
+      return;
+    }
+
     const all = ENTRIES.filter(e => e.category === 'vitosha')
       .sort((a, b) => toSec(a.result) - toSec(b.result));
 
@@ -1526,14 +1739,36 @@ function renderRankings(key) {
     const fEntries = applySearch(applyBest(all.filter(e => e.gender === 'f')));
     vMaleWrap.innerHTML   = buildVitoshaTable(mEntries, 'm');
     vFemaleWrap.innerHTML = buildVitoshaTable(fEntries, 'f');
-    const vMaleCount = document.getElementById('vMaleCount');
-    const vFemaleCount = document.getElementById('vFemaleCount');
     if (vMaleCount)   vMaleCount.textContent   = '(' + mEntries.length + ')';
     if (vFemaleCount) vFemaleCount.textContent = '(' + fEntries.length + ')';
   }
 
+  // Sort click and show-all button delegation on the Vitosha page
+  document.getElementById('pageVitosha').addEventListener('click', function(e) {
+    const th = e.target.closest('th.lng-sort-th[data-sort]');
+    if (th) {
+      const g = th.dataset.gender;
+      longevitySort[g] = th.dataset.sort;
+      renderLongevity(vSearchBox.value.trim().toLowerCase());
+      return;
+    }
+    const btn = e.target.closest('button.lng-show-all-btn[data-gender]');
+    if (btn) {
+      longevityShowAll[btn.dataset.gender] = true;
+      renderLongevity(vSearchBox.value.trim().toLowerCase());
+    }
+  });
+
   vSearchBox.addEventListener('input', renderVitosha);
   bestOnlyV.addEventListener('change', renderVitosha);
+  longevityV.addEventListener('change', function() {
+    // Reset cache and show-all state when toggling
+    longevityCacheM = null;
+    longevityCacheF = null;
+    longevityShowAll.m = false;
+    longevityShowAll.f = false;
+    renderVitosha();
+  });
   renderVitosha();
 })();
 
@@ -2391,6 +2626,25 @@ function renderRankings(key) {
           )}`;
       }
 
+      case 'vitosha-longevity': {
+        return `
+          <div class="ett-title">Точки за дълголетие · Витоша 100</div>
+          <div style="font-size:0.83rem;color:var(--text-dim);line-height:1.6;margin-top:0.2rem">
+            <div style="margin-bottom:0.5rem">
+              <span style="color:var(--accent);font-weight:600">Ново трасе (2017–2026)</span><br>
+              🥇 1-во място → <b>3 т.</b> &nbsp;|&nbsp; 🥈 2-ро → <b>2 т.</b> &nbsp;|&nbsp; 🥉 3-то → <b>1 т.</b>
+            </div>
+            <div style="margin-bottom:0.5rem">
+              <span style="color:var(--accent);font-weight:600">Топ 5 най-бързи на трасето</span><br>
+              ⚡ 1-во → <b>+5 т.</b> &nbsp; 2-ро → <b>+4 т.</b> &nbsp; 3-то → <b>+3 т.</b> &nbsp; 4-то → <b>+2 т.</b> &nbsp; 5-то → <b>+1 т.</b><br>
+            </div>
+            <div>
+              <span style="color:var(--accent);font-weight:600">Старо трасе (2005–2016)</span><br>
+              🥇 1-во място → <b>2 т.</b> &nbsp;|&nbsp; 🥈 2-ро или 🥉 3-то → <b>1 т.</b>
+            </div>
+          </div>`;
+      }
+
       default: return '';
     }
   }
@@ -2424,6 +2678,61 @@ function renderRankings(key) {
     tip.style.left = x + 'px';
     tip.style.top  = y + 'px';
   }
+})();
+
+/* ═══════════════════════════════════════════════════════
+   LONGEVITY POINTS TOOLTIP (per-row)
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const tip = document.getElementById('ptsTooltip');
+
+  function positionTip(e) {
+    const pad = 14;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - pad;
+    if (y + th  > window.innerHeight - 8) y = e.clientY - th  - pad;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    const td = e.target.closest('td.lng-pts[data-pts]');
+    if (!td) return;
+    let breakdown;
+    try { breakdown = JSON.parse(td.getAttribute('data-pts')); } catch(err) { return; }
+    const total = breakdown.reduce((s, r) => s + r.pts, 0);
+    const rows = breakdown.map(r =>
+      `<div class="pt-row"><span>${r.label}</span><span class="pt-val">+${r.pts}</span></div>`
+    ).join('');
+    tip.innerHTML = `
+      <div class="pt-title">Разбивка на точките</div>
+      ${rows}
+      <div class="pt-total"><span>Общо</span><span class="pt-val">${total}</span></div>`;
+    tip.style.display = 'block';
+    positionTip(e);
+  });
+
+  document.addEventListener('mouseover', function(e) {
+    const span = e.target.closest('span.lng-ast[data-orig]');
+    if (!span) return;
+    const orig = span.getAttribute('data-orig');
+    tip.innerHTML = `
+      <div class="pt-title">🔄 Преизчислено от старо трасе</div>
+      <div style="font-size:0.9rem;color:var(--text-dim);margin-top:0.2rem">🏔️ ${orig}</div>`;
+    tip.style.display = 'block';
+    positionTip(e);
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (tip.style.display === 'none') return;
+    if (!e.target.closest('td.lng-pts[data-pts]') && !e.target.closest('span.lng-ast[data-orig]')) return;
+    positionTip(e);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    if (e.target.closest('td.lng-pts[data-pts]') || e.target.closest('span.lng-ast[data-orig]')) tip.style.display = 'none';
+  });
 })();
 
 }); // end DOMContentLoaded
@@ -3657,7 +3966,108 @@ function renderRankings(key) {
   }
   #equivTooltip .ett-avg-val.ett-m { color: var(--male); }
   #equivTooltip .ett-avg-val.ett-f { color: var(--female); }
-  /* old disc-label kept for compat — unused now */
+  /* ── LONGEVITY TABLE ── */
+  .lng-sort-th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .lng-sort-th:hover { color: var(--text); }
+  .lng-sort-active   { color: var(--accent) !important; }
+
+  .lng-pts {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    cursor: help;
+    text-decoration: underline dotted 1px var(--accent);
+    text-underline-offset: 3px;
+    text-align: center;
+    padding-right: 1rem;
+  }
+
+  .lng-ast {
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: var(--accent) !important;
+    cursor: help;
+  }
+
+  #ptsTooltip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.7rem 1rem;
+    min-width: 190px;
+    max-width: 300px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+  #ptsTooltip .pt-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.45rem;
+  }
+  #ptsTooltip .pt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    padding: 0.15rem 0;
+    border-bottom: 1px solid rgba(42,47,61,0.5);
+  }
+  #ptsTooltip .pt-row:last-child { border-bottom: none; }
+  #ptsTooltip .pt-row .pt-val {
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  #ptsTooltip .pt-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 0.4rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--border);
+  }
+  #ptsTooltip .pt-total .pt-val { color: var(--accent); font-size: 1rem; }
+  .lng-show-all-wrap {
+    margin-top: 0.6rem;
+    text-align: center;
+  }
+  .lng-show-all-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.35rem 1rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .lng-show-all-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  /* ── END LONGEVITY TABLE ── */
   #equivTooltip .ett-disc-label { display: none; }
   #equivTooltip .ett-disc-coef  { display: none; }
 </style>
@@ -3665,6 +4075,7 @@ function renderRankings(key) {
 <body>
 
 <div id="equivTooltip"></div>
+<div id="ptsTooltip"></div>
 
 <header>
   <div class="header-flag">
@@ -3765,6 +4176,8 @@ function renderRankings(key) {
     <input class="im-search" id="vitoshaSearch" type="text" placeholder="Име…">
     <div class="im-filter-sep"></div>
     <label class="im-checkbox-label"><input type="checkbox" id="vBestOnly"> Само най-добър резултат</label>
+    <div class="im-filter-sep"></div>
+    <label class="im-checkbox-label"><input type="checkbox" id="vLongevity"> Зала на славата</label>
   </div>
   <div class="ironman-tables">
     <div>
