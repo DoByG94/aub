@@ -1682,7 +1682,7 @@ function renderRankings(key) {
             <th>Резултат</th>
             <th>Година</th>
             <th>Позиция</th>
-            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-road">Еквивалент (Шосе)</th>` : ''}
+            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-road">Еквивалент (100 км шосе)</th>` : ''}
             ${isFemale ? `<th class="rank-equiv-head" data-tooltip="vitosha-gender">Еквивалент (Мъже)</th>` : ''}
           </tr>
         </thead>
@@ -1826,8 +1826,8 @@ function renderRankings(key) {
             <th>Резултат</th>
             <th>Година</th>
             <th>Позиция</th>
-            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Екв. Ново Трасе</th>` : ''}
-            ${isFemale ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Екв. Ново Трасе</th>` : ''}
+            ${isMale   ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Еквивалент Ново Трасе</th>` : ''}
+            ${isFemale ? `<th class="rank-equiv-head" data-tooltip="vitosha-old-road">Екввивалент Ново Трасе</th>` : ''}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -2517,12 +2517,8 @@ function renderRankings(key) {
       case 'vitosha-road': {
         const f = DISTANCE_FACTORS['vitosha'];
         return `
-          <div class="ett-title">Еквивалент (Шосе) · Витоша 100</div>
-          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
-          <div class="ett-list">
-            <span class="ett-list-hdr">#</span><span class="ett-list-hdr">Стара</span><span class="ett-list-hdr">Нова</span>
-            <span>—</span><span style="color:var(--text-muted)">Фиксиран</span><span style="color:var(--text-muted)">коефициент</span>
-          </div>`;
+          <div class="ett-title">Еквивалент (100 км шосе)</div>
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>`;
       }
 
       case 'vitosha-gender': {
@@ -2557,11 +2553,7 @@ function renderRankings(key) {
         const f = DISTANCE_FACTORS['vitosha-old'];
         return `
           <div class="ett-title">Екв. Ново Трасе · Витоша (90 км)</div>
-          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>
-          <div class="ett-list">
-            <span class="ett-list-hdr">#</span><span class="ett-list-hdr">—</span><span class="ett-list-hdr">—</span>
-            <span>—</span><span style="color:var(--text-muted)">Фиксиран</span><span style="color:var(--text-muted)">коефициент</span>
-          </div>`;
+          <div class="ett-coef">Коефициент: ${fmt4(f)}</div>`;
       }
 
       case 'marathon-to-half': {
