@@ -1817,7 +1817,9 @@ const DISTANCE_CATEGORIES = ['6h', '12h', '24h', '48h', '6days'];
 // (e.g. a plain km distance like "319.61").
 function parseDurationToSeconds(result) {
   if (!result) return null;
-  let s = result.replace(/^\*\s*/, '').trim();
+  // Some results carry a second value in parentheses (e.g. "10:51:39 *(10:46:38)")
+  // — only the first (primary) value should be used for calculations.
+  let s = String(result).split('(')[0].replace(/\*/g, '').trim();
   let days = 0;
   const dayMatch = s.match(/^(\d+)\s*д\s*(.*)$/);
   if (dayMatch) {
@@ -1839,8 +1841,9 @@ function parseDurationToSeconds(result) {
 function performancePercent(result, worldResult, isDistance) {
   if (!result || !worldResult) return null;
   if (isDistance) {
-    const n = parseFloat(String(result).replace(',', '.'));
-    const w = parseFloat(String(worldResult).replace(',', '.'));
+    // Use only the primary value if a bracketed secondary value is present.
+    const n = parseFloat(String(result).split('(')[0].replace(',', '.'));
+    const w = parseFloat(String(worldResult).split('(')[0].replace(',', '.'));
     if (!n || !w) return null;
     return (n / w) * 100;
   }
