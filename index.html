@@ -200,6 +200,776 @@ const GENDER_FACTORS = {
 // Vitosha gender factor = average of Comrades and WSER only (100km road excluded)
 GENDER_FACTORS["vitosha"] = (GENDER_FACTORS["comrades"] + GENDER_FACTORS["western-states"]) / 2;
 
+// AID_STATIONS: ordered list of timing points on the current (2017+) course.
+//   key            — internal id, used to key split times in SPLIT_SETS below
+//   name           — display name of the aid station
+//   distance       — cumulative distance from start, in km
+//   splitDistance  — distance since the previous point, in km
+//   elevGain       — elevation gain since the previous point, in m
+//   elevLoss       — elevation loss since the previous point, in m
+//   official       — true = official timed aid station, false = unofficial/custom checkpoint
+// Values transcribed from the official course splits sheet.
+const AID_STATIONS = [
+  { key: "start", name: "Старт", distance: 0, splitDistance: null, elevGain: null, elevLoss: null, official: true, pinUrl: "https://www.google.com/maps/place/42%C2%B039'17.2%22N+23%C2%B016'40.5%22E/@42.6547659,23.2781855,400m/data=!3m1!1e3!4m13!1m8!3m7!1s0x40aa835fa1cd6267:0x2ccbc31cd44aa594!2z0LrQsi4g0JHQvtGP0L3QsNCS0LjRgtC-0YjQsCwgMTYxNiDQodC-0YTQuNGP!3b1!8m2!3d42.64674!4d23.2804153!16zL20vMGMybjR2!3m3!8m2!3d42.6547778!4d23.2779167?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "starobelovodski", name: "Стар Беловодски", distance: 4.10, splitDistance: 4.10, elevGain: 192, elevLoss: 0, official: false, segmentUrl:"https://www.strava.com/segments/24552779", pinUrl:"https://www.google.com/maps/place/42%C2%B038'51.7%22N+23%C2%B014'45.3%22E/@42.6476983,23.2433418,799m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa9cad563572b5:0x76fff35f8c66c05d!2z0YPQuy4g4oCe0JHQtdC70L7QstC-0LTRgdC60Lgg0L_RitGC4oCc!3b1!8m2!3d42.644509!4d23.238327!16s%2Fg%2F11x9p1jbb!3m3!8m2!3d42.6476944!4d23.2459167?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "tihiakat", name: "Тихия кът", distance: 7.05, splitDistance: 2.95, elevGain: 218, elevLoss: 0, official: false, segmentUrl:"https://www.strava.com/segments/38962006", pinUrl:"https://www.google.com/maps/place/42%C2%B038'17.8%22N+23%C2%B013'09.9%22E/@42.638306,23.2171983,800m/data=!3m1!1e3!4m12!1m7!3m6!1s0x40aa9cc7fac9a387:0x6d36147eb23f345b!2z0KLQuNGF0LjRjyDQutGK0YI!8m2!3d42.638306!4d23.219387!16s%2Fg%2F11fl47tt73!3m3!8m2!3d42.6382778!4d23.2194167?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "vladaya", name: "Владая", distance: 9.45, splitDistance: 2.40, elevGain: 7, elevLoss: 134, official: true, segmentUrl:"https://www.strava.com/segments/38962018", pinUrl:"https://www.google.com/maps/place/42%C2%B037'36.7%22N+23%C2%B012'18.7%22E/@42.626865,23.2026195,800m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa835fa1cd6267:0x2ccbc31cd44aa594!2z0LrQsi4g0JHQvtGP0L3QsNCS0LjRgtC-0YjQsCwgMTYxNiDQodC-0YTQuNGP!3b1!8m2!3d42.64674!4d23.2804153!16zL20vMGMybjR2!3m3!8m2!3d42.6268611!4d23.2051944?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "vododela", name: "Вододела", distance: 10.60, splitDistance: 1.15, elevGain: 138, elevLoss: 0, official: false, segmentUrl:"https://www.strava.com/segments/38962046", pinUrl:"https://www.google.com/maps/place/42%C2%B037'08.5%22N+23%C2%B012'36.8%22E/@42.6190317,23.2076473,800m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa835fa1cd6267:0x2ccbc31cd44aa594!2z0LrQsi4g0JHQvtGP0L3QsNCS0LjRgtC-0YjQsCwgMTYxNiDQodC-0YTQuNGP!3b1!8m2!3d42.64674!4d23.2804153!16zL20vMGMybjR2!3m3!8m2!3d42.6190278!4d23.2102222?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "kladnica", name: "Кладница", distance: 23.60, splitDistance: 13.00, elevGain: 21, elevLoss: 134, official: true, segmentUrl:"https://www.strava.com/segments/38932260", pinUrl:"https://www.google.com/maps/place/42%C2%B033'56.9%22N+23%C2%B010'32.4%22E/@42.5658095,23.1730918,800m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x14aacd6e3e2992a1:0x723a41a7ac3e3aa1!2z0YPQu9C40YbQsCDQodGC0LDQtNC40L7QvdCwLCAyMzQ3INCa0LvQsNC00L3QuNGG0LA!3b1!8m2!3d42.5655863!4d23.1754116!16s%2Fg%2F11g61dc8_b!3m3!8m2!3d42.5658056!4d23.1756667?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "spuskane", name: "Спускане към най-гадната", distance: 28.15, splitDistance: 4.55, elevGain: 38, elevLoss: 125, official: false, segmentUrl:"https://www.strava.com/segments/36888968", pinUrl:"https://www.google.com/maps/place/42%C2%B032'32.6%22N+23%C2%B009'46.0%22E/@42.542378,23.1627745,801m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.542378!4d23.1627745?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "studena", name: "Студена", distance: 32.70, splitDistance: 4.55, elevGain: 108, elevLoss: 110, official: true, segmentUrl:"https://www.strava.com/segments/23930653", pinUrl:"https://www.google.com/maps/place/42%C2%B030'41.5%22N+23%C2%B008'55.9%22E/@42.5117353,23.1462745,801m/data=!3m1!1e3!4m13!1m8!3m7!1s0x14aace6005abac6b:0x822fc473dd0e255b!2zMjM0NCDQkdC-0YHQvdC10Lo!3b1!8m2!3d42.5117353!4d23.1484632!16s%2Fg%2F11g4f1_4_w!3m3!8m2!3d42.5115278!4d23.1488611?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "izhodbosnek", name: "Изход Боснек", distance: 37.35, splitDistance: 4.65, elevGain: 112, elevLoss: 2, official: false, segmentUrl:"https://www.strava.com/segments/31946011", pinUrl:"https://www.google.com/maps/place/42%C2%B029'31.1%22N+23%C2%B011'39.4%22E/@42.4919761,23.1917029,801m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa9cad563572b5:0x76fff35f8c66c05d!2z0YPQuy4g4oCe0JHQtdC70L7QstC-0LTRgdC60Lgg0L_RitGC4oCc!3b1!8m2!3d42.644509!4d23.238327!16s%2Fg%2F11x9p1jbb!3m3!8m2!3d42.4919722!4d23.1942778?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "chuypetlovo", name: "Чуйпетлово", distance: 43.90, splitDistance: 6.55, elevGain: 263, elevLoss: 0, official: true, segmentUrl:"https://www.strava.com/segments/31946011", pinUrl:"https://www.google.com/maps/place/42%C2%B031'01.9%22N+23%C2%B014'36.7%22E/@42.5172787,23.2421013,401m/data=!3m1!1e3!4m13!1m8!3m7!1s0x14aacd7c011fc64d:0xa00a014cd0e6560!2zMjM0NyDQmtC70LDQtNC90LjRhtCw!3b1!8m2!3d42.5682441!4d23.1795059!16s%2Fg%2F121l5tfm!3m3!8m2!3d42.5171944!4d23.2435278?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "smilovo", name: "Смильо", distance: 47.75, splitDistance: 3.85, elevGain: 144, elevLoss: 25, official: false, segmentUrl:"https://www.strava.com/segments/38963169", pinUrl:"https://www.google.bg/maps/place/42%C2%B029'40.9%22N+23%C2%B014'59.6%22E/@42.4946944,23.2498889,801m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.4946944!4d23.2498889?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "bukapreslap", name: "Бука Преслап", distance: 55.90, splitDistance: 8.15, elevGain: 67, elevLoss: 311, official: false, segmentUrl:"https://www.strava.com/segments/38932389", pinUrl:"https://www.google.bg/maps/place/42%C2%B026'22.3%22N+23%C2%B014'52.2%22E/@42.4395278,23.2478333,802m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.4395278!4d23.2478333?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "yarlovo", name: "Ярлово", distance: 61.30, splitDistance: 5.40, elevGain: 68, elevLoss: 115, official: true, segmentUrl:"https://www.strava.com/segments/34706177", pinUrl:"https://www.google.com/maps/place/42%C2%B028'05.4%22N+23%C2%B016'51.4%22E/@42.4681706,23.2783695,802m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x14aad12fcc5cda29:0xa00a014cd0f6870!2zMjAyOSDQr9GA0LvQvtCy0L4!3b1!8m2!3d42.4655878!4d23.2823454!16s%2Fm%2F07k9m1w!3m3!8m2!3d42.4681667!4d23.2809444?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "yarema", name: "Ярема", distance: 68.90, splitDistance: 7.60, elevGain: 304, elevLoss: 74, official: false, segmentUrl:"https://www.strava.com/segments/23930372", pinUrl:"https://www.google.com/maps/place/42%C2%B029'59.2%22N+23%C2%B019'59.5%22E/@42.4997778,23.3331944,801m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.4997778!4d23.3331944?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "plana", name: "Плана", distance: 72.30, splitDistance: 3.40, elevGain: 6, elevLoss: 170, official: true, segmentUrl:"https://www.strava.com/segments/39414329", pinUrl:"https://www.google.com/maps/place/42%C2%B030'26.9%22N+23%C2%B021'30.1%22E/@42.5074761,23.3557862,801m/data=!3m2!1e3!4b1!4m12!1m7!3m6!1s0x14aad44b0499c247:0x75f1f66b1a08b388!2z0K_RgNC10LzQsA!8m2!3d42.5057257!4d23.3323786!16s%2Fg%2F11bwkbt752!3m3!8m2!3d42.5074722!4d23.3583611!5m1!1e4?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "brezite", name: "Брезите", distance: 75.00, splitDistance: 2.70, elevGain: 62, elevLoss: 57, official: false, segmentUrl:"https://www.strava.com/segments/38959667", pinUrl:"https://www.google.com/maps/place/42%C2%B031'27.9%22N+23%C2%B021'37.9%22E/@42.5243379,23.3605398,1602m/data=!3m1!1e3!4m4!3m3!8m2!3d42.5244167!4d23.3605278?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "zavoyvechnata", name: "Завоя след Вечната", distance: 77.05, splitDistance: 2.05, elevGain: 23, elevLoss: 23, official: false, segmentUrl:"https://www.strava.com/segments/29202520", pinUrl:"https://www.google.bg/maps/place/42%C2%B032'05.8%22N+23%C2%B021'11.3%22E/@42.5349444,23.3531389,801m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.5349444!4d23.3531389?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "bistrica", name: "Бистрица", distance: 82.75, splitDistance: 5.70, elevGain: 0, elevLoss: 17, official: true, segmentUrl:"https://www.strava.com/segments/29202502", pinUrl:"https://www.google.com/maps/place/42%C2%B034'06.9%22N+23%C2%B020'33.3%22E/@42.5685833,23.3425833,400m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.5685833!4d23.3425833?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "simeonovo", name: "Симеоново", distance: 89.65, splitDistance: 6.90, elevGain: 34, elevLoss: 241, official: false, segmentUrl:"https://www.strava.com/segments/38932511", pinUrl:"https://www.google.com/maps/place/42%C2%B036'36.6%22N+23%C2%B019'51.6%22E/@42.6101706,23.3284251,800m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa835fa1cd6267:0x2ccbc31cd44aa594!2z0LrQsi4g0JHQvtGP0L3QsNCS0LjRgtC-0YjQsCwgMTYxNiDQodC-0YTQuNGP!3b1!8m2!3d42.64674!4d23.2804153!16zL20vMGMybjR2!3m3!8m2!3d42.6101667!4d23.331?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "dragalevci", name: "Драгалевци", distance: 92.75, splitDistance: 3.10, elevGain: 6, elevLoss: 56, official: true, segmentUrl:"https://www.strava.com/segments/36912940", pinUrl:"https://www.google.com/maps/place/42%C2%B037'28.5%22N+23%C2%B018'18.4%22E/@42.6245872,23.3025362,800m/data=!3m2!1e3!4b1!4m13!1m8!3m7!1s0x40aa83eb6afeb60b:0x8fdc7f630ee8fd4d!2z0LIu0LcuINCU0YDQsNCz0LDQu9C10LLRhtC4INC70LjRhNGC0LDQktC40YLQvtGI0LAsINGD0LsuIOKAntCT0YDQuNCz0L7RgNC40Lkg0JzQvdC40YXigJwsIDE0MTUg0KHQvtGE0LjRjw!3b1!8m2!3d42.6235637!4d23.30816!16s%2Fg%2F11xl3lfxs!3m3!8m2!3d42.6245833!4d23.3051111?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "pavetata", name: "Паветата", distance: 97.15, splitDistance: 4.40, elevGain: 73, elevLoss: 148, official: false, segmentUrl:"https://www.strava.com/segments/38932612", pinUrl:"https://www.google.com/maps/place/42%C2%B038'37.6%22N+23%C2%B015'56.6%22E/@42.6437778,23.2657222,799m/data=!3m2!1e3!4b1!4m4!3m3!8m2!3d42.6437778!4d23.2657222?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+  { key: "finish", name: "Финал", distance: 99.20, splitDistance: 2.05, elevGain: 0, elevLoss: 135, official: true, segmentUrl:"https://www.strava.com/segments/29202377", pinUrl:"https://www.google.com/maps/place/42%C2%B039'17.2%22N+23%C2%B016'40.5%22E/@42.6547659,23.2781855,400m/data=!3m1!1e3!4m13!1m8!3m7!1s0x40aa835fa1cd6267:0x2ccbc31cd44aa594!2z0LrQsi4g0JHQvtGP0L3QsNCS0LjRgtC-0YjQsCwgMTYxNiDQodC-0YTQuNGP!3b1!8m2!3d42.64674!4d23.2804153!16zL20vMGMybjR2!3m3!8m2!3d42.6547778!4d23.2779167?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D" },
+];
+
+// SPLIT_SETS: named sets of split times that can be selected and compared in the
+// splits-comparison window. Each set stores ONLY the split time (time elapsed
+// since the previous aid station) per station key — the overall/cumulative time
+// from the start is derived automatically (see cumulativeSplitSet in the UI code).
+// "start" never has a split time since it's the origin.
+// Values transcribed from the official splits sheet. Done so far: График (balanced),
+// Тест, Ицо'21-25, Шадура'24-25, Пламен'24-26, Стилян'26, Сашо'18.
+// TODO still to add: Иво'18/20/23, Генчо'26, Кубашли'23, Ицо'19 (rest of image 1),
+// plus all of image 2 (Пламен'22, Влади'19, Мария'20/24/26, Надя'22/24, Ицо'18,
+// Сашо'19, Стефко'21, Дизел'16/21, Иванджиков).
+const SPLIT_SETS = {
+  balanced: {
+    label: "Равномерен график",
+    gender: null,
+    splits: {
+      starobelovodski: "0:19:10",
+      tihiakat: "0:15:25",
+      vladaya: "0:08:35",
+      vododela: "0:07:10",
+      kladnica: "0:50:40",
+      spuskane: "0:17:15",
+      studena: "0:19:15",
+      izhodbosnek: "0:20:10",
+      chuypetlovo: "0:30:35",
+      smilovo: "0:18:15",
+      bukapreslap: "0:32:20",
+      yarlovo: "0:21:50",
+      yarema: "0:37:25",
+      plana: "0:12:45",
+      brezite: "0:11:25",
+      zavoyvechnata: "0:08:40",
+      bistrica: "0:23:25",
+      simeonovo: "0:28:30",
+      dragalevci: "0:12:20",
+      pavetata: "0:17:55",
+      finish: "0:06:55",
+    }
+  },
+  ico25: {
+    label: "Ицо '25",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:00",
+      tihiakat: "0:15:29",
+      vladaya: "0:08:34",
+      vododela: "0:07:03",
+      kladnica: "0:50:30",
+      spuskane: "0:17:13",
+      studena: "0:19:09",
+      izhodbosnek: "0:20:12",
+      chuypetlovo: "0:30:47",
+      smilovo: "0:18:04",
+      bukapreslap: "0:32:30",
+      yarlovo: "0:21:49",
+      yarema: "0:36:41",
+      plana: "0:12:19",
+      brezite: "0:11:15",
+      zavoyvechnata: "0:08:34",
+      bistrica: "0:23:00",
+      simeonovo: "0:27:59",
+      dragalevci: "0:12:04",
+      pavetata: "0:17:54",
+      finish: "0:06:34",
+    }
+  },
+  ico24: {
+    label: "Ицо '24",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:20:39",
+      tihiakat: "0:16:39",
+      vladaya: "0:09:23",
+      vododela: "0:07:45",
+      kladnica: "0:55:58",
+      spuskane: "0:19:12",
+      studena: "0:21:03",
+      izhodbosnek: "0:22:28",
+      chuypetlovo: "0:33:57",
+      smilovo: "0:20:34",
+      bukapreslap: "0:38:04",
+      yarlovo: "0:24:57",
+      yarema: "0:43:45",
+      plana: "0:14:58",
+      brezite: "0:12:54",
+      zavoyvechnata: "0:09:52",
+      bistrica: "0:26:47",
+      simeonovo: "0:32:29",
+      dragalevci: "0:13:30",
+      pavetata: "0:19:42",
+      finish: "0:07:25",
+    }
+  },
+  ico23: {
+    label: "Ицо '23",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:51",
+      tihiakat: "0:15:59",
+      vladaya: "0:08:42",
+      vododela: "0:07:11",
+      kladnica: "0:54:29",
+      spuskane: "0:18:36",
+      studena: "0:21:46",
+      izhodbosnek: "0:22:04",
+      chuypetlovo: "0:33:12",
+      smilovo: "0:19:53",
+      bukapreslap: "0:35:57",
+      yarlovo: "0:24:03",
+      yarema: "0:42:24",
+      plana: "0:14:40",
+      brezite: "0:13:10",
+      zavoyvechnata: "0:10:15",
+      bistrica: "0:25:37",
+      simeonovo: "0:33:02",
+      dragalevci: "0:13:10",
+      pavetata: "0:18:54",
+      finish: "0:06:59",
+    }
+  },
+  ico22: {
+    label: "Ицо '22",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:20:02",
+      tihiakat: "0:16:07",
+      vladaya: "0:08:56",
+      vododela: "0:07:31",
+      kladnica: "0:54:46",
+      spuskane: "0:18:57",
+      studena: "0:21:54",
+      izhodbosnek: "0:21:51",
+      chuypetlovo: "0:33:22",
+      smilovo: "0:19:44",
+      bukapreslap: "0:36:46",
+      yarlovo: "0:24:12",
+      yarema: "0:41:40",
+      plana: "0:15:22",
+      brezite: "0:12:23",
+      zavoyvechnata: "0:09:40",
+      bistrica: "0:25:43",
+      simeonovo: "0:34:41",
+      dragalevci: "0:14:02",
+      pavetata: "0:20:27",
+      finish: "0:07:28",
+    }
+  },
+  ico21: {
+    label: "Ицо '21",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:32",
+      tihiakat: "0:16:29",
+      vladaya: "0:09:41",
+      vododela: "0:07:20",
+      kladnica: "0:58:32",
+      spuskane: "0:19:25",
+      studena: "0:23:03",
+      izhodbosnek: "0:21:59",
+      chuypetlovo: "0:33:15",
+      smilovo: "0:21:49",
+      bukapreslap: "0:43:18",
+      yarlovo: "0:24:33",
+      yarema: "0:44:53",
+      plana: "0:15:40",
+      brezite: "0:13:05",
+      zavoyvechnata: "0:11:00",
+      bistrica: "0:27:06",
+      simeonovo: "0:33:51",
+      dragalevci: "0:14:25",
+      pavetata: "0:20:47",
+      finish: "0:07:30",
+    }
+  },
+  shadura25: {
+    label: "Шадура '25",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:20:19",
+      tihiakat: "0:16:26",
+      vladaya: "0:09:14",
+      vododela: "0:07:38",
+      kladnica: "0:55:51",
+      spuskane: "0:19:02",
+      studena: "0:21:12",
+      izhodbosnek: "0:22:31",
+      chuypetlovo: "0:34:48",
+      smilovo: "0:19:23",
+      bukapreslap: "0:36:17",
+      yarlovo: "0:24:03",
+      yarema: "0:41:47",
+      plana: "0:13:38",
+      brezite: "0:12:49",
+      zavoyvechnata: "0:09:53",
+      bistrica: "0:26:51",
+      simeonovo: "0:32:45",
+      dragalevci: "0:13:29",
+      pavetata: "0:20:17",
+      finish: "0:07:27",
+    }
+  },
+  plamen26: {
+    label: "Пламен '26",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:13",
+      tihiakat: "0:17:28",
+      vladaya: "0:09:41",
+      vododela: "0:08:01",
+      kladnica: "0:57:28",
+      spuskane: "0:20:08",
+      studena: "0:21:49",
+      izhodbosnek: "0:22:27",
+      chuypetlovo: "0:35:01",
+      smilovo: "0:20:10",
+      bukapreslap: "0:37:37",
+      yarlovo: "0:25:01",
+      yarema: "0:42:48",
+      plana: "0:14:44",
+      brezite: "0:13:40",
+      zavoyvechnata: "0:10:07",
+      bistrica: "0:27:00",
+      simeonovo: "0:33:33",
+      dragalevci: "0:14:40",
+      pavetata: "0:22:02",
+      finish: "0:08:12",
+    }
+  },
+  shadura24: {
+    label: "Шадура '24",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:51",
+      tihiakat: "0:17:37",
+      vladaya: "0:10:14",
+      vododela: "0:08:20",
+      kladnica: "0:59:20",
+      spuskane: "0:20:28",
+      studena: "0:22:26",
+      izhodbosnek: "0:23:21",
+      chuypetlovo: "0:35:14",
+      smilovo: "0:21:45",
+      bukapreslap: "0:38:05",
+      yarlovo: "0:25:27",
+      yarema: "0:43:47",
+      plana: "0:14:52",
+      brezite: "0:13:17",
+      zavoyvechnata: "0:09:42",
+      bistrica: "0:25:54",
+      simeonovo: "0:32:31",
+      dragalevci: "0:13:24",
+      pavetata: "0:19:39",
+      finish: "0:07:38",
+    }
+  },
+  plamen24: {
+    label: "Пламен '24",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:50",
+      tihiakat: "0:17:39",
+      vladaya: "0:10:12",
+      vododela: "0:08:23",
+      kladnica: "0:59:16",
+      spuskane: "0:20:27",
+      studena: "0:22:28",
+      izhodbosnek: "0:23:19",
+      chuypetlovo: "0:35:12",
+      smilovo: "0:21:46",
+      bukapreslap: "0:38:04",
+      yarlovo: "0:25:24",
+      yarema: "0:43:45",
+      plana: "0:14:52",
+      brezite: "0:13:17",
+      zavoyvechnata: "0:09:46",
+      bistrica: "0:26:00",
+      simeonovo: "0:32:36",
+      dragalevci: "0:13:41",
+      pavetata: "0:20:19",
+      finish: "0:07:39",
+    }
+  },
+  stilyan26: {
+    label: "Стилян '26",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:43",
+      tihiakat: "0:17:08",
+      vladaya: "0:09:35",
+      vododela: "0:08:28",
+      kladnica: "0:57:07",
+      spuskane: "0:20:00",
+      studena: "0:22:36",
+      izhodbosnek: "0:23:39",
+      chuypetlovo: "0:35:27",
+      smilovo: "0:22:10",
+      bukapreslap: "0:41:24",
+      yarlovo: "0:27:18",
+      yarema: "0:42:55",
+      plana: "0:15:37",
+      brezite: "0:13:34",
+      zavoyvechnata: "0:10:56",
+      bistrica: "0:26:15",
+      simeonovo: "0:33:29",
+      dragalevci: "0:13:30",
+      pavetata: "0:20:05",
+      finish: "0:07:33",
+    }
+  },
+  sasho18: {
+    label: "Сашо '18",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:48",
+      tihiakat: "0:17:19",
+      vladaya: "0:10:32",
+      vododela: "0:07:48",
+      kladnica: "0:58:16",
+      spuskane: "0:19:43",
+      studena: "0:21:24",
+      izhodbosnek: "0:22:29",
+      chuypetlovo: "0:33:38",
+      smilovo: "0:22:31",
+      bukapreslap: "0:39:14",
+      yarlovo: "0:24:46",
+      yarema: "0:46:03",
+      plana: "0:15:13",
+      brezite: "0:16:33",
+      zavoyvechnata: "0:11:01",
+      bistrica: "0:26:25",
+      simeonovo: "0:34:05",
+      dragalevci: "0:15:00",
+      pavetata: "0:20:40",
+      finish: "0:07:38",
+    }
+  },
+  ivo20: {
+    label: "Иво '20",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:14",
+      tihiakat: "0:16:04",
+      vladaya: "0:10:17",
+      vododela: "0:07:40",
+      kladnica: "0:58:11",
+      spuskane: "0:20:05",
+      studena: "0:24:39",
+      izhodbosnek: "0:22:34",
+      chuypetlovo: "0:33:47",
+      smilovo: "0:22:32",
+      bukapreslap: "0:40:44",
+      yarlovo: "0:25:10",
+      yarema: "0:45:02",
+      plana: "0:16:42",
+      brezite: "0:14:02",
+      zavoyvechnata: "0:12:02",
+      bistrica: "0:27:39",
+      simeonovo: "0:34:49",
+      dragalevci: "0:15:19",
+      pavetata: "0:22:50",
+      finish: "0:08:58",
+    }
+  },
+  gencho26: {
+    label: "Генчо '26",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:14",
+      tihiakat: "0:17:26",
+      vladaya: "0:09:42",
+      vododela: "0:08:01",
+      kladnica: "0:57:32",
+      spuskane: "0:20:08",
+      studena: "0:22:37",
+      izhodbosnek: "0:24:27",
+      chuypetlovo: "0:38:29",
+      smilovo: "0:22:21",
+      bukapreslap: "0:40:54",
+      yarlovo: "0:26:49",
+      yarema: "0:44:50",
+      plana: "0:15:15",
+      brezite: "0:13:42",
+      zavoyvechnata: "0:10:18",
+      bistrica: "0:29:15",
+      simeonovo: "0:36:14",
+      dragalevci: "0:16:27",
+      pavetata: "0:24:06",
+      finish: "0:09:26",
+    }
+  },
+  ivo23: {
+    label: "Иво '23",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:55",
+      tihiakat: "0:16:00",
+      vladaya: "0:09:58",
+      vododela: "0:07:27",
+      kladnica: "0:59:25",
+      spuskane: "0:19:36",
+      studena: "0:23:37",
+      izhodbosnek: "0:22:22",
+      chuypetlovo: "0:33:30",
+      smilovo: "0:23:40",
+      bukapreslap: "0:39:35",
+      yarlovo: "0:28:15",
+      yarema: "0:46:42",
+      plana: "0:16:54",
+      brezite: "0:15:13",
+      zavoyvechnata: "0:11:09",
+      bistrica: "0:29:09",
+      simeonovo: "0:37:38",
+      dragalevci: "0:16:12",
+      pavetata: "0:23:53",
+      finish: "0:09:25",
+    }
+  },
+  ivo18: {
+    label: "Иво '18",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:43",
+      tihiakat: "0:17:25",
+      vladaya: "0:11:06",
+      vododela: "0:07:13",
+      kladnica: "0:59:24",
+      spuskane: "0:24:25",
+      studena: "0:22:40",
+      izhodbosnek: "0:23:59",
+      chuypetlovo: "0:35:10",
+      smilovo: "0:22:15",
+      bukapreslap: "0:40:05",
+      yarlovo: "0:25:40",
+      yarema: "0:44:30",
+      plana: "0:16:17",
+      brezite: "0:13:35",
+      zavoyvechnata: "0:11:30",
+      bistrica: "0:28:07",
+      simeonovo: "0:35:59",
+      dragalevci: "0:15:44",
+      pavetata: "0:24:06",
+      finish: "0:09:24",
+    }
+  },
+  kubashli23: {
+    label: "Кубашли '23",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:22:00",
+      tihiakat: "0:18:15",
+      vladaya: "0:10:25",
+      vododela: "0:08:40",
+      kladnica: "0:58:40",
+      spuskane: "0:20:15",
+      studena: "0:22:40",
+      izhodbosnek: "0:23:55",
+      chuypetlovo: "0:36:40",
+      smilovo: "0:21:59",
+      bukapreslap: "0:39:22",
+      yarlovo: "0:27:04",
+      yarema: "0:50:00",
+      plana: "0:16:45",
+      brezite: "0:15:00",
+      zavoyvechnata: "0:12:00",
+      bistrica: "0:29:20",
+      simeonovo: "0:36:30",
+      dragalevci: "0:14:50",
+      pavetata: "0:21:10",
+      finish: "0:07:41",
+    }
+  },
+  ico19: {
+    label: "Ицо '19",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:20",
+      tihiakat: "0:17:40",
+      vladaya: "0:11:10",
+      vododela: "0:07:50",
+      kladnica: "1:01:55",
+      spuskane: "0:21:35",
+      studena: "0:23:40",
+      izhodbosnek: "0:25:50",
+      chuypetlovo: "0:38:30",
+      smilovo: "0:22:35",
+      bukapreslap: "0:41:20",
+      yarlovo: "0:26:00",
+      yarema: "0:46:24",
+      plana: "0:15:17",
+      brezite: "0:13:14",
+      zavoyvechnata: "0:11:15",
+      bistrica: "0:28:05",
+      simeonovo: "0:35:00",
+      dragalevci: "0:14:20",
+      pavetata: "0:22:35",
+      finish: "0:08:30",
+    }
+  },
+  plamen22: {
+    label: "Пламен '22",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:21:55",
+      tihiakat: "0:17:20",
+      vladaya: "0:11:05",
+      vododela: "0:08:50",
+      kladnica: "1:03:10",
+      spuskane: "0:21:35",
+      studena: "0:23:40",
+      izhodbosnek: "0:23:35",
+      chuypetlovo: "0:35:45",
+      smilovo: "0:23:00",
+      bukapreslap: "0:41:35",
+      yarlovo: "0:26:50",
+      yarema: "0:45:30",
+      plana: "0:15:50",
+      brezite: "0:14:20",
+      zavoyvechnata: "0:10:55",
+      bistrica: "0:29:30",
+      simeonovo: "0:36:55",
+      dragalevci: "0:15:25",
+      pavetata: "0:24:00",
+      finish: "0:07:42",
+    }
+  },
+  vladi19: {
+    label: "Леон '19",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:47",
+      tihiakat: "0:16:12",
+      vladaya: "0:09:50",
+      vododela: "0:07:32",
+      kladnica: "0:57:13",
+      spuskane: "0:19:55",
+      studena: "0:23:07",
+      izhodbosnek: "0:26:31",
+      chuypetlovo: "0:38:15",
+      smilovo: "0:27:20",
+      bukapreslap: "0:44:47",
+      yarlovo: "0:28:18",
+      yarema: "0:59:34",
+      plana: "0:17:55",
+      brezite: "0:13:57",
+      zavoyvechnata: "0:12:00",
+      bistrica: "0:25:50",
+      simeonovo: "0:32:58",
+      dragalevci: "0:13:20",
+      pavetata: "0:20:22",
+      finish: "0:07:21",
+    }
+  },
+  maria26: {
+    label: "Мария '26",
+    gender: "f",
+    splits: {
+      starobelovodski: "0:21:45",
+      tihiakat: "0:18:01",
+      vladaya: "0:10:58",
+      vododela: "0:08:31",
+      kladnica: "1:02:35",
+      spuskane: "0:21:54",
+      studena: "0:24:22",
+      izhodbosnek: "0:24:48",
+      chuypetlovo: "0:37:01",
+      smilovo: "0:25:15",
+      bukapreslap: "0:43:16",
+      yarlovo: "0:29:20",
+      yarema: "0:48:18",
+      plana: "0:15:49",
+      brezite: "0:14:00",
+      zavoyvechnata: "0:11:25",
+      bistrica: "0:28:50",
+      simeonovo: "0:36:06",
+      dragalevci: "0:15:32",
+      pavetata: "0:22:24",
+      finish: "0:08:04",
+    }
+  },
+  maria24: {
+    label: "Мария '24",
+    gender: "f",
+    splits: {
+      starobelovodski: "0:21:38",
+      tihiakat: "0:18:02",
+      vladaya: "0:11:03",
+      vododela: "0:08:44",
+      kladnica: "1:01:32",
+      spuskane: "0:21:08",
+      studena: "0:24:16",
+      izhodbosnek: "0:24:05",
+      chuypetlovo: "0:37:01",
+      smilovo: "0:24:04",
+      bukapreslap: "0:43:56",
+      yarlovo: "0:30:04",
+      yarema: "0:49:27",
+      plana: "0:16:59",
+      brezite: "0:15:02",
+      zavoyvechnata: "0:11:35",
+      bistrica: "0:29:11",
+      simeonovo: "0:37:14",
+      dragalevci: "0:17:27",
+      pavetata: "0:24:50",
+      finish: "0:09:21",
+    }
+  },
+  nadya24: {
+    label: "Надя '24",
+    gender: "f",
+    splits: {
+      starobelovodski: "0:22:49",
+      tihiakat: "0:17:50",
+      vladaya: "0:11:59",
+      vododela: "0:08:20",
+      kladnica: "1:06:44",
+      spuskane: "0:22:00",
+      studena: "0:25:50",
+      izhodbosnek: "0:24:38",
+      chuypetlovo: "0:36:03",
+      smilovo: "0:23:49",
+      bukapreslap: "0:46:30",
+      yarlovo: "0:29:12",
+      yarema: "0:47:10",
+      plana: "0:17:30",
+      brezite: "0:14:46",
+      zavoyvechnata: "0:11:05",
+      bistrica: "0:28:11",
+      simeonovo: "0:36:29",
+      dragalevci: "0:15:00",
+      pavetata: "0:23:09",
+      finish: "0:08:31",
+    }
+  },
+  ico18: {
+    label: "Ицо '18",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:22:00",
+      tihiakat: "0:17:30",
+      vladaya: "0:11:55",
+      vododela: "0:09:05",
+      kladnica: "1:09:00",
+      spuskane: "0:23:50",
+      studena: "0:27:05",
+      izhodbosnek: "0:27:15",
+      chuypetlovo: "0:39:10",
+      smilovo: "0:25:10",
+      bukapreslap: "0:44:50",
+      yarlovo: "0:27:50",
+      yarema: "0:46:20",
+      plana: "0:17:20",
+      brezite: "0:15:15",
+      zavoyvechnata: "0:11:30",
+      bistrica: "0:30:35",
+      simeonovo: "0:39:20",
+      dragalevci: "0:15:20",
+      pavetata: "0:22:30",
+      finish: "0:08:27",
+    }
+  },
+  sasho19: {
+    label: "Сашо '19",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:19:13",
+      tihiakat: "0:15:58",
+      vladaya: "0:09:56",
+      vododela: "0:07:23",
+      kladnica: "0:56:38",
+      spuskane: "0:21:02",
+      studena: "0:23:18",
+      izhodbosnek: "0:25:42",
+      chuypetlovo: "0:38:21",
+      smilovo: "0:26:30",
+      bukapreslap: "0:41:27",
+      yarlovo: "0:26:45",
+      yarema: "0:53:48",
+      plana: "0:15:26",
+      brezite: "0:15:00",
+    }
+  },
+  stefko21: {
+    label: "Стефко '21",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:18:39",
+      tihiakat: "0:15:32",
+      vladaya: "0:09:38",
+      vododela: "0:07:40",
+      kladnica: "0:57:13",
+      spuskane: "0:19:51",
+      studena: "0:23:08",
+      izhodbosnek: "0:24:12",
+      chuypetlovo: "0:42:27",
+    }
+  },
+  dizel21: {
+    label: "Дизел '21",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:22:16",
+      tihiakat: "0:16:19",
+      vladaya: "0:09:56",
+      vododela: "0:07:55",
+      kladnica: "0:57:38",
+      spuskane: "0:20:08",
+      studena: "0:22:45",
+      izhodbosnek: "0:22:36",
+      chuypetlovo: "0:34:21",
+      smilovo: "0:22:25",
+      bukapreslap: "0:39:48",
+      yarlovo: "0:25:09",
+      yarema: "0:46:22",
+      plana: "0:16:33",
+      brezite: "0:13:43",
+      zavoyvechnata: "0:11:10",
+      bistrica: "0:29:15",
+    }
+  },
+  ivandzhikov: {
+    label: "Иванджиков '26",
+    gender: "m",
+    splits: {
+      starobelovodski: "0:18:55",
+      tihiakat: "0:15:23",
+      vladaya: "0:08:35",
+      vododela: "0:07:08",
+      kladnica: "0:50:13",
+      spuskane: "0:17:19",
+      studena: "0:19:06",
+      izhodbosnek: "0:19:58",
+      chuypetlovo: "0:29:53",
+      smilovo: "0:18:19",
+    }
+  },
+};
+
 // 5. OTHER NOTABLE ACHIEVEMENTS
 // Fields: discipline (display label), gender ("m" or "f"),
 //         name, result, year, race, url (optional)
@@ -215,7 +985,7 @@ const OTHER_ACHIEVEMENTS = [
   { discipline: "УТМБ", gender: "f", name: "Мария Николова", result: "27:23:20", year: 2018, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=90247&cat=W&year=all&country=BUL&length=all&Submit.x=25&Submit.y=5" },
   { discipline: "Ком - Емине", gender: "m", name: "Божидар Антонов", result: "4д 8:27", year: 2018, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
   { discipline: "Ком - Емине", gender: "f", name: "Мария Николова", result: "5д 16:43", year: 2020, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
-  { discipline: "3100 Мили", gender: "m", name: "Шопан Цеков", result: "50д 13:48:57", year: 2006, race: "Self-Transcendence 3100", url: "https://statistik.d-u-v.org/getresultevent.php?event=536" },
+  { discipline: "3100 Мили", gender: "m", name: "Шопан Цеков", result: "50д 13:48", year: 2006, race: "Self-Transcendence 3100", url: "https://statistik.d-u-v.org/getresultevent.php?event=536" },
   { discipline: "Айрънмен", gender: "m", name: "Иван Гръблев", result: "9:02:42", year: 2024, race: "Ironman Italy"},
   { discipline: "Айрънмен", gender: "f", name: "Вероника Кузева", result: "11:18:35", year: 2026, race: "Ironman Austria"},
 ];
@@ -617,7 +1387,63 @@ const ENTRIES = [
   {category:"vitosha-old", gender:"f", rank:"3 (16)", name:"Надежда Ангелова", result:"9:47:32", year:2016},
   {category:"vitosha-old", gender:"f", rank:"1 (9)", name:"Мария Николова", result:"9:51:24", year:2013},
   {category:"vitosha-old", gender:"f", rank:"1 (8)", name:"Мария Николова", result:"9:54:53", year:2014},
-  {category:"vitosha-old", gender:"f", rank:"4 (20)", name:"Тоня Цветкова", result:"9:58:55", year:2016},
+];
+
+// 3b. WORLD RECORD ENTRIES (mirrors ENTRIES structure) — the current IAU /
+// world-record performance for each discipline in DISCIPLINES, used by the
+// Национален/Световен toggle on the Records page.
+// Source: IAU Records (https://iau-ultramarathon.org/iau-records.html), updated 6 May 2026.
+const ENTRIES_WORLD = [
+  { category:"50km", gender:"m", name:"CJ Albertson", result:"2:38:43", year:2022, race:"San Francisco (USA)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=50km&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=5&Submit.y=7" },
+  { category:"50km", gender:"f", name:"Desiree Linden", result:"2:59:54", year:2021, race:"Dorena (USA)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=50km&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=12&Submit.y=11" },
+
+  { category:"50mi", gender:"m", name:"Charlie Lawrence", result:"4:48:21", year:2023, race:"Vienna, IL (USA)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=50mi&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=14&Submit.y=9" },
+  { category:"50mi", gender:"f", name:"Anne Flower", result:"5:18:57", year:2025, race:"Vienna, IL (USA)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=50mi&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=29&Submit.y=3" },
+
+  { category:"100mi", gender:"m", name:"Aleksandr Sorokin", result:"10:51:39 *(10:46:38)", year:2022, race:"Tel Aviv (Israel)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=100mi&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=19&Submit.y=7" },
+  { category:"100mi", gender:"f", name:"Ashley Paulson", result:"12:19:34", year:2026, race:"Henderson, NV (USA)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=100mi&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=26&Submit.y=4" },
+
+  { category:"48h", gender:"m", name:"Matthieu Bonne", result:"485.10", year:2025, race:"Pabianice (Poland)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=48h&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=6&Submit.y=2" },
+  { category:"48h", gender:"f", name:"Patrycja Bereznowska", result:"436.37", year:2025, race:"Pabianice (Poland)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=48h&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=28&Submit.y=11" },
+
+  { category:"6h", gender:"m", name:"Aleksandr Sorokin", result:"98.50", year:2022, race:"Bedford (Great Britain)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=6h&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=22&Submit.y=11" },
+  { category:"6h", gender:"f", name:"Satu Lipiäinen", result:"85.71", year:2026, race:"Kokkola (Finland)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=6h&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=18&Submit.y=15" },
+
+  { category:"100km", gender:"m", name:"Aleksandr Sorokin", result:"6:05:35 *(5:59:20)", year:2023, race:"Vilnius (Lithuania)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=100km&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=30&Submit.y=4" },
+  { category:"100km", gender:"f", name:"Tomoe Abe", result:"6:33:11", year:2000, race:"Lake Saroma (Japan)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=100km&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=28&Submit.y=6" },
+
+  { category:"12h", gender:"m", name:"Aleksandr Sorokin", result:"177.41", year:2022, race:"Tel Aviv (Israel)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=12h&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=26&Submit.y=5" },
+  { category:"12h", gender:"f", name:"Satu Lipiäinen", result:"153.60", year:2023, race:"Kokkola (Finland)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=12h&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=16&Submit.y=7" },
+
+  { category:"24h", gender:"m", name:"Aleksandr Sorokin", result:"319.61", year:2022, race:"Verona (Italy)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=24h&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=20&Submit.y=7" },
+  { category:"24h", gender:"f", name:"Sarah Webster", result:"278.62", year:2025, race:"Albi (France)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=24h&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=26&Submit.y=7" },
+
+  { category:"6days", gender:"m", name:"Matthieu Bonne", result:"1045.52 *(1047.55)", year:2024, race:"Balatonfüred (Hungary)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=6d&gender=M&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=20&Submit.y=12" },
+  { category:"6days", gender:"f", name:"Megan Eckert", result:"970.69", year:2025, race:" Vallon Pont d'Arc (France)", url:"https://statistik.d-u-v.org/getintbestlist.php?year=all&dist=6d&gender=W&cat=all&nat=all&label=&hili=none&tt=netto&Submit.x=1&Submit.y=5" },
+];
+
+// 5b. OTHER NOTABLE ACHIEVEMENTS — WORLD RECORDS (mirrors OTHER_ACHIEVEMENTS
+// structure) — the current course/world record for each named race, used by
+// the Национален/Световен toggle on the "Други значими постижения" page.
+// Vitosha 100 and Ком - Емине are already held by Bulgarian athletes, so
+// their "world" values equal the national ones.
+const OTHER_ACHIEVEMENTS_WORLD = [
+  { discipline: "Комрадс", gender: "m", name: "Tete Dijana", result: "5:13:58", year: 2023, race: "Comrades Down Run", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=108961&cat=M&year=all&country=all&length=all&Submit.x=17&Submit.y=11" },
+  { discipline: "Комрадс", gender: "f", name: "Gerda Steyn", result: "5:44:33", year: 2026, race: "Comrades Up Run", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=108961&cat=W&year=all&country=all&length=all&Submit.x=-1&Submit.y=11" },
+  { discipline: "Спартатлон", gender: "m", name: "Fotis Zisimopoulos", result: "19:55:09", year: 2023, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=113807&cat=M&year=all&country=all&length=all&Submit.x=21&Submit.y=9" },
+  { discipline: "Спартатлон", gender: "f", name: "Camille Herron", result: "22:35:31", year: 2023, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=113807&cat=W&year=all&country=all&length=all&Submit.x=14&Submit.y=14" },
+  { discipline: "Витоша 100", gender: "m", name: "Hristo Tsvetkov", result: "6:56:40", year: 2025, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=120119&cat=M&year=all&country=all&length=99km&Submit.x=37&Submit.y=12" },
+  { discipline: "Витоша 100", gender: "f", name: "Maria Nikolova", result: "8:48:14", year: 2026, race: "Vitosha 100", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=120119&cat=W&year=all&country=all&length=99km&Submit.x=15&Submit.y=6" },
+  { discipline: "Уестърн Стейтс", gender: "m", name: "Vincent Bouillard", result: "13:46:15", year: 2026, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=125282&cat=M&year=all&country=all&length=all&Submit.x=35&Submit.y=8" },
+  { discipline: "Уестърн Стейтс", gender: "f", name: "Jenn Lichter", result: "15:28:05", year: 2026, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=125282&cat=W&year=all&country=all&length=all&Submit.x=11&Submit.y=13" },
+  { discipline: "УТМБ", gender: "m", name: "Tom Evans", result: "19:18:58", year: 2025, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=110256&cat=M&year=all&country=all&length=all&Submit.x=16&Submit.y=6" },
+  { discipline: "УТМБ", gender: "f", name: "Katie Schide", result: "22:30:55", year: 2024, race: "UTMB", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=110256&cat=W&year=all&country=all&length=all&Submit.x=18&Submit.y=7" },
+  { discipline: "Ком - Емине", gender: "m", name: "Bozhidar Antonov", result: "4д 8:27", year: 2018, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
+  { discipline: "Ком - Емине", gender: "f", name: "Maria Nikolova", result: "5д 16:43", year: 2020, race: "Kom - Emine", url: "https://kom-emine.bg/records/" },
+  { discipline: "3100 Мили", gender: "m", name: "Ashprihanal Aalto", result: "40д 09:06", year: 2015, race: "Self-Transcendence 3100", url: "https://statistik.d-u-v.org/getresultevent.php?event=25360" },
+  { discipline: "3100 Мили", gender: "f", name: "Tsai Wen-Ya", result: "45д 12:28", year: 2023, race: "Self-Transcendence 3100", url: "https://statistik.d-u-v.org/getresultevent.php?event=102753" },
+  { discipline: "Айрънмен", gender: "m", name: "Sam Laidlow", result: "7:21:04", year: 2026, race: " Challenge Roth", url: "https://www.trirating.com/ironman-distance-records/" },
+  { discipline: "Айрънмен", gender: "f", name: "Anne Haug", result: "8:02:38", year: 2024, race: "  Challenge Roth", url: "https://www.trirating.com/ironman-distance-records/" },
 ];
 
   // ── Vitosha (old) ──────────────────────────────────
@@ -962,8 +1788,8 @@ const IRONMAN_UPDATED = "18.06.2026";
 /* ═══════════════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════════════ */
-function getEntries(category, gender) {
-  return ENTRIES
+function getEntries(category, gender, source) {
+  return (source || ENTRIES)
     .filter(e => e.category === category && e.gender === gender)
     .sort((a, b) => {
       // Sort by result (as string, works for km distances and times alphabetically since
@@ -972,13 +1798,62 @@ function getEntries(category, gender) {
     });
 }
 
-function getRecord(category, gender) {
-  const entries = getEntries(category, gender);
+function getRecord(category, gender, source) {
+  const entries = getEntries(category, gender, source);
   return entries.length > 0 ? entries[0] : null;
 }
 
 function rankClass(i) {
   return i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+}
+
+// Categories from DISCIPLINES whose "result" is a km distance (bigger is
+// better) rather than a finish time (smaller is better).
+const DISTANCE_CATEGORIES = ['6h', '12h', '24h', '48h', '6days'];
+
+// Parses a result string into total seconds. Handles plain "h:mm:ss" times
+// as well as multi-day results written as "Xд h:mm" or "Xд h:mm:ss" (used by
+// Ком - Емине and the 3100 Mile Race). Returns null if it isn't a duration
+// (e.g. a plain km distance like "319.61").
+function parseDurationToSeconds(result) {
+  if (!result) return null;
+  let s = result.replace(/^\*\s*/, '').trim();
+  let days = 0;
+  const dayMatch = s.match(/^(\d+)\s*д\s*(.*)$/);
+  if (dayMatch) {
+    days = parseInt(dayMatch[1], 10);
+    s = dayMatch[2].trim();
+  }
+  const parts = s.split(':').map(Number);
+  if (parts.length < 2 || parts.some(isNaN)) return null;
+  let sec;
+  if (parts.length === 3) sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  else sec = parts[0] * 3600 + parts[1] * 60;
+  return days * 86400 + sec;
+}
+
+// Performance percentage of `result` relative to `worldResult`, for the same
+// category/discipline. Distance-based results (km) score higher-is-better;
+// duration-based results score lower-is-better. Returns null if either value
+// can't be parsed.
+function performancePercent(result, worldResult, isDistance) {
+  if (!result || !worldResult) return null;
+  if (isDistance) {
+    const n = parseFloat(String(result).replace(',', '.'));
+    const w = parseFloat(String(worldResult).replace(',', '.'));
+    if (!n || !w) return null;
+    return (n / w) * 100;
+  }
+  const n = parseDurationToSeconds(result);
+  const w = parseDurationToSeconds(worldResult);
+  if (!n || !w) return null;
+  return (w / n) * 100;
+}
+
+// Renders the "(96.4%)" suffix shown next to a result when the % toggle is on.
+function percentSuffix(pct) {
+  if (pct == null || isNaN(pct)) return '';
+  return ` <span class="rec-percent">(${pct.toFixed(1)}%)</span>`;
 }
 
 // Calculate male equivalent from a time result string (h:mm:ss or hh:mm:ss)
@@ -1053,26 +1928,71 @@ function raceLink(race, url) {
   return race || '—';
 }
 
-function recCell(rec) {
+function recCell(rec, worldRec, isDistance, showPercent) {
   if (!rec) {
     return `<td class="rec-name rec-empty" colspan="3">Няма рекорд</td>`;
   }
+  const pct = showPercent && worldRec ? performancePercent(rec.result, worldRec.result, isDistance) : null;
   return `
     <td class="rec-name">${rec.name}</td>
-    <td class="rec-result">${rec.result}</td>
+    <td class="rec-result">${rec.result}${percentSuffix(pct)}</td>
     <td class="rec-meta">${raceLink(rec.race, rec.url)} · ${rec.year}</td>`;
 }
 
-Object.entries(DISCIPLINES).forEach(([key, label]) => {
-  const mRec = getRecord(key, 'm');
-  const fRec = getRecord(key, 'f');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="rec-discipline">${label}</td>
-    ${recCell(mRec)}
-    ${recCell(fRec)}`;
-  tbody.appendChild(tr);
-});
+let recordsScope = 'national'; // 'national' | 'world'
+let recordsShowPercent = false;
+const recordsScopeSlider = document.getElementById('recordsScopeSlider');
+const recordsPercentSlider = document.getElementById('recordsPercentSlider');
+const recordsPercentLabel = document.getElementById('recordsPercentLabel');
+
+function updateRecordsPercentLabel() {
+  if (recordsPercentLabel) recordsPercentLabel.textContent = recordsScope === 'world' ? '% M/F' : '%WR';
+}
+
+function renderRecordsTable() {
+  const source = recordsScope === 'world' ? ENTRIES_WORLD : ENTRIES;
+  const showPercent = recordsShowPercent;
+  tbody.innerHTML = '';
+  Object.entries(DISCIPLINES).forEach(([key, label]) => {
+    const mRec = getRecord(key, 'm', source);
+    const fRec = getRecord(key, 'f', source);
+    let mRef = null, fRef = null;
+    if (showPercent) {
+      if (recordsScope === 'national') {
+        mRef = getRecord(key, 'm', ENTRIES_WORLD);
+        fRef = getRecord(key, 'f', ENTRIES_WORLD);
+      } else {
+        // World scope: compare each gender's record against the other gender's.
+        mRef = fRec;
+        fRef = mRec;
+      }
+    }
+    const isDistance = DISTANCE_CATEGORIES.includes(key);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="rec-discipline">${label}</td>
+      ${recCell(mRec, mRef, isDistance, showPercent)}
+      ${recCell(fRec, fRef, isDistance, showPercent)}`;
+    tbody.appendChild(tr);
+  });
+}
+
+if (recordsScopeSlider) {
+  recordsScopeSlider.addEventListener('change', () => {
+    recordsScope = recordsScopeSlider.checked ? 'world' : 'national';
+    updateRecordsPercentLabel();
+    renderRecordsTable();
+  });
+}
+if (recordsPercentSlider) {
+  recordsPercentSlider.addEventListener('change', () => {
+    recordsShowPercent = recordsPercentSlider.checked;
+    renderRecordsTable();
+  });
+}
+
+updateRecordsPercentLabel();
+renderRecordsTable();
 
 /* ═══════════════════════════════════════════════════════
    RANKINGS PAGE
@@ -2061,7 +2981,8 @@ function renderRankings(key) {
    OTHERS PAGE
    ═══════════════════════════════════════════════════════ */
 (function() {
-  // Group entries by discipline label, preserving insertion order
+  // Group entries by discipline label, preserving insertion order (always
+  // based on the national list, so the row order doesn't change when toggling).
   const grouped = [];
   const seen = {};
   OTHER_ACHIEVEMENTS.forEach(e => {
@@ -2072,26 +2993,69 @@ function renderRankings(key) {
   });
 
   const tbody = document.getElementById('othersTableBody');
+  const scopeSlider = document.getElementById('othersScopeSlider');
+  const percentSlider = document.getElementById('othersPercentSlider');
+  const percentLabel = document.getElementById('othersPercentLabel');
+  let othersScope = 'national'; // 'national' | 'world'
+  let othersShowPercent = false;
 
-  grouped.forEach(disc => {
-    const mRec = OTHER_ACHIEVEMENTS.find(e => e.discipline === disc && e.gender === 'm') || null;
-    const fRec = OTHER_ACHIEVEMENTS.find(e => e.discipline === disc && e.gender === 'f') || null;
+  function updateOthersPercentLabel() {
+    if (percentLabel) percentLabel.textContent = othersScope === 'world' ? '% M/F' : '%WR';
+  }
 
-    function cell(rec) {
-      if (!rec) return `<td class="rec-name rec-empty" colspan="3">—</td>`;
-      return `
-        <td class="rec-name">${rec.name}</td>
-        <td class="rec-result">${rec.result}</td>
-        <td class="rec-meta">${raceLink(rec.race, rec.url)} · ${rec.year}</td>`;
-    }
+  function cell(rec, refRec, showPercent) {
+    if (!rec) return `<td class="rec-name rec-empty" colspan="3">—</td>`;
+    const pct = showPercent && refRec ? performancePercent(rec.result, refRec.result, false) : null;
+    return `
+      <td class="rec-name">${rec.name}</td>
+      <td class="rec-result">${rec.result}${percentSuffix(pct)}</td>
+      <td class="rec-meta">${raceLink(rec.race, rec.url)} · ${rec.year}</td>`;
+  }
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="rec-discipline">${disc}</td>
-      ${cell(mRec)}
-      ${cell(fRec)}`;
-    tbody.appendChild(tr);
-  });
+  function renderOthersTable() {
+    const source = othersScope === 'world' ? OTHER_ACHIEVEMENTS_WORLD : OTHER_ACHIEVEMENTS;
+    const showPercent = othersShowPercent;
+    tbody.innerHTML = '';
+    grouped.forEach(disc => {
+      const mRec = source.find(e => e.discipline === disc && e.gender === 'm') || null;
+      const fRec = source.find(e => e.discipline === disc && e.gender === 'f') || null;
+      let mRef = null, fRef = null;
+      if (showPercent) {
+        if (othersScope === 'national') {
+          mRef = OTHER_ACHIEVEMENTS_WORLD.find(e => e.discipline === disc && e.gender === 'm') || null;
+          fRef = OTHER_ACHIEVEMENTS_WORLD.find(e => e.discipline === disc && e.gender === 'f') || null;
+        } else {
+          // World scope: compare each gender's record against the other gender's.
+          mRef = fRec;
+          fRef = mRec;
+        }
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="rec-discipline">${disc}</td>
+        ${cell(mRec, mRef, showPercent)}
+        ${cell(fRec, fRef, showPercent)}`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  if (scopeSlider) {
+    scopeSlider.addEventListener('change', () => {
+      othersScope = scopeSlider.checked ? 'world' : 'national';
+      updateOthersPercentLabel();
+      renderOthersTable();
+    });
+  }
+  if (percentSlider) {
+    percentSlider.addEventListener('change', () => {
+      othersShowPercent = percentSlider.checked;
+      renderOthersTable();
+    });
+  }
+
+  updateOthersPercentLabel();
+  renderOthersTable();
 })();
 
 /* ═══════════════════════════════════════════════════════
@@ -2779,6 +3743,391 @@ function renderRankings(key) {
   });
 })();
 
+/* ═══════════════════════════════════════════════════════
+   SPLITS COMPARISON MODAL (Витоша 100 — "Сравнения")
+   ═══════════════════════════════════════════════════════ */
+(function() {
+  const openBtn      = document.getElementById('splitsCompareBtn');
+  const overlay      = document.getElementById('splitsModalOverlay');
+  const closeBtn     = document.getElementById('splitsModalClose');
+  const selectA      = document.getElementById('splitsSelectA');
+  const selectB      = document.getElementById('splitsSelectB');
+  const modeSlider   = document.getElementById('splitsModeSlider');
+  const tableEl      = document.getElementById('splitsTable');
+  const colsWrap     = document.getElementById('splitsColsToggleWrap');
+  const colsBtn      = document.getElementById('splitsColsToggleBtn');
+  const colsPanel    = document.getElementById('splitsColsPanel');
+  const balancedWrap = document.getElementById('splitsBalancedTimeWrap');
+  const balancedInput = document.getElementById('splitsBalancedTimeInput');
+  const effortToggle = document.getElementById('splitsEffortToggle');
+  if (!openBtn || !overlay) return;
+
+  // "Най-бързо преминаване" (theoretical fastest passage): a synthetic split
+  // set built from the fastest recorded split at every single segment, across
+  // all real results (the "Равномерен график" schedule is excluded — it's not
+  // an actual result). Registered into SPLIT_SETS like any other entry so it
+  // flows through cumulativeSplitSet/finishTime/renderSelects unchanged; only
+  // its position in the dropdown (pinned to the bottom) gets special-cased in
+  // sortedSetKeys below.
+  (function registerFastestSplitSet() {
+    const realKeys = Object.keys(SPLIT_SETS).filter(k => k !== 'balanced' && !k.startsWith('ico'));
+    const splits = {};
+    const recordHolders = {};
+    AID_STATIONS.forEach(st => {
+      if (st.key === 'start') return;
+      let min = null;
+      let minKey = null;
+      realKeys.forEach(k => {
+        const s = SPLIT_SETS[k].splits;
+        if (st.key in s) {
+          const v = splitTimeToSec(s[st.key]);
+          if (min === null || v < min) { min = v; minKey = k; }
+        }
+      });
+      if (min !== null) {
+        splits[st.key] = secToTime(min);
+        recordHolders[st.key] = SPLIT_SETS[minKey].label;
+      }
+    });
+    SPLIT_SETS.fastest = { label: "Най-бързи сплитове", gender: null, splits, recordHolders };
+  })();
+
+  // Which two split sets are being compared (dropdown A / dropdown B), and
+  // whether the table shows split (segment) time or total (cumulative) time.
+  const setKeys = Object.keys(SPLIT_SETS);
+  let setA = setKeys.find(k => k !== 'balanced') || setKeys[0];
+  let setB = 'balanced';
+  let displayMode = 'split'; // 'total' | 'split'
+  let effortMode = false;
+
+  // The "Равномерен график" (balanced/equal-pacing) schedule is stored for a
+  // 7:00:00 finish. Entering a different total time here scales every split
+  // proportionally (e.g. entering 8:00:00 stretches every segment by 8/7).
+  const BALANCED_BASE_SEC = 7 * 3600; // 7:00:00, matches SPLIT_SETS.balanced's stored splits
+  let balancedTargetSec = BALANCED_BASE_SEC;
+
+  // Which course-profile columns are shown (distance itself is always shown;
+  // these three can be hidden via the ☰ button next to the close button).
+  let colsVisible = { split: true, gain: false, loss: false };
+
+  function splitTimeToSec(t) {
+    if (!t) return 0;
+    const p = t.split(':').map(Number);
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + (p[1] || 0);
+  }
+
+  function secToTime(s) {
+    const neg = s < 0;
+    s = Math.abs(s);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${neg ? '−' : ''}${h}:${m}:${sec}`;
+  }
+
+  // Formats a duration as minutes:seconds only (no hours), for the diff column.
+  function secToMinSec(s) {
+    const neg = s < 0;
+    s = Math.abs(Math.round(s));
+    const m = Math.floor(s / 60);
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${neg ? '−' : ''}${m}:${sec}`;
+  }
+
+  // Formats a duration as h:mm only (no seconds), for the dropdown option prefixes.
+  function secToHM(s) {
+    s = Math.round(s);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+  }
+
+  // Returns { key: { split: seconds|null, total: seconds|null } } for one split set,
+  // deriving the cumulative "total" time from the stored split times. Once a
+  // station's split time is missing from the data (DNF/DNS from that point on),
+  // this and every later station returns null instead of carrying the last
+  // known total forward.
+  function cumulativeSplitSet(setKey) {
+    const set = SPLIT_SETS[setKey];
+    const scale = setKey === 'balanced' ? (balancedTargetSec / BALANCED_BASE_SEC) : 1;
+    let total = 0;
+    let prevScaled = 0;
+    let dnf = false;
+    const out = {};
+    AID_STATIONS.forEach(st => {
+      if (st.key === 'start') { out[st.key] = { split: 0, total: 0 }; return; }
+      if (dnf || !(st.key in set.splits)) {
+        dnf = true;
+        out[st.key] = { split: null, total: null };
+        return;
+      }
+      total += splitTimeToSec(set.splits[st.key]);
+      // Scale the cumulative total (not each split) so rounding never drifts
+      // away from the exact entered finish time; the split is the difference
+      // between consecutive scaled totals.
+      const scaledTotal = Math.round(total * scale);
+      out[st.key] = { split: scaledTotal - prevScaled, total: scaledTotal };
+      prevScaled = scaledTotal;
+    });
+    return out;
+  }
+
+  // Total finish time in seconds for a split set (null if it never finishes / DNF).
+  function finishTime(setKey) {
+    return cumulativeSplitSet(setKey).finish.total;
+  }
+
+  // Dropdown order: "Равномерен график" pinned to the top, then everyone else
+  // by finish time, fastest first; DNFs (no finish time) last.
+  function sortedSetKeys() {
+    return [...setKeys].sort((a, b) => {
+      if (a === 'fastest') return 1;
+      if (b === 'fastest') return -1;
+      if (a === 'balanced') return -1;
+      if (b === 'balanced') return 1;
+      const fa = finishTime(a);
+      const fb = finishTime(b);
+      if (fa == null && fb == null) return 0;
+      if (fa == null) return 1;
+      if (fb == null) return -1;
+      return fa - fb;
+    });
+  }
+
+  function renderSelects() {
+    const opts = sortedSetKeys().map(k => {
+      const g = SPLIT_SETS[k].gender;
+      const color = g === 'm' ? 'var(--male)' : g === 'f' ? 'var(--female)' : 'var(--text)';
+      const label = SPLIT_SETS[k].label;
+      if (k === 'balanced') {
+        return `<option value="${k}" style="color:${color}">${label}</option>`;
+      }
+      const finish = finishTime(k);
+      const timePrefix = finish == null ? 'DNF' : secToHM(finish);
+      return `<option value="${k}" style="color:${color}">${timePrefix} · ${label}</option>`;
+    }).join('');
+    selectA.innerHTML = opts;
+    selectB.innerHTML = opts;
+    selectA.value = setA;
+    selectB.value = setB;
+    modeSlider.checked = displayMode === 'total';
+  }
+
+  // For the "fastest" synthetic set, returns a small "(label)" suffix naming
+  // whichever real result contributed the segment record at this station —
+  // blank for every other set, and blank if this station has no record data.
+  function recordLabel(setKey, stKey) {
+    if (setKey !== 'fastest') return '';
+    const lbl = SPLIT_SETS.fastest.recordHolders && SPLIT_SETS.fastest.recordHolders[stKey];
+    return lbl ? ` <span class="splits-record-holder">(${lbl})</span>` : '';
+  }
+
+  function renderTable() {
+    const cumA = cumulativeSplitSet(setA);
+    const cumB = cumulativeSplitSet(setB);
+    // Always compute the balanced/even-pacing schedule fresh (regardless of
+    // whether it's actually selected in slot A/B) — it's the yardstick the
+    // "усилие" (effort) estimate compares each segment split against.
+    const cumBalanced = cumulativeSplitSet('balanced');
+    const showEffort = effortMode && displayMode === 'split';
+
+    // Given a segment split (seconds) and the aid station key it belongs to,
+    // estimates the finish time implied if that same relative effort (split
+    // vs. the balanced schedule's split for this segment) were held for the
+    // whole race. Returns '' if there's nothing sensible to compare against.
+    function effortSuffix(splitVal, stKey, setKey) {
+      if (!showEffort || setKey === 'balanced' || !(splitVal > 0)) return '';
+      const balSplit = cumBalanced[stKey] && cumBalanced[stKey].split;
+      if (!(balSplit > 0)) return '';
+      const estimate = (splitVal / balSplit) * balancedTargetSec;
+      return ` <span class="splits-effort-estimate">(${secToHM(estimate)})</span>`;
+    }
+
+    const headRow = `
+      <tr>
+        <th>Пункт</th>
+        <th>Разстояние</th>
+        ${colsVisible.split ? '<th>Сплит</th>' : ''}
+        ${colsVisible.gain ? '<th>Изкачване</th>' : ''}
+        ${colsVisible.loss ? '<th>Спускане</th>' : ''}
+        <th class="splits-set-group">${SPLIT_SETS[setA].label}</th>
+        <th>${SPLIT_SETS[setB].label}</th>
+        <th>Разлика</th>
+      </tr>`;
+
+    const bodyRows = AID_STATIONS.map(st => {
+      const a = cumA[st.key];
+      const b = cumB[st.key];
+      const valA = displayMode === 'split' ? a.split : a.total;
+      const valB = displayMode === 'split' ? b.split : b.total;
+      const hasA = valA > 0 || (st.key === 'start');
+      const hasB = valB > 0 || (st.key === 'start');
+      let diffCell = '—';
+      if (hasA && hasB && valA > 0 && valB > 0) {
+        const diff = valA - valB;
+        const cls = diff < 0 ? 'splits-diff-neg' : diff > 0 ? 'splits-diff-pos' : 'splits-diff-zero';
+        const sign = diff > 0 ? '+' : '';
+        diffCell = `<span class="${cls}">${sign}${secToMinSec(diff)}</span>`;
+      }
+      const nameCls = st.official ? 'aid-official' : 'aid-custom';
+      const nameIcon = st.official ? '🏠 ' : '✅ ';
+      const nameHtml = st.segmentUrl
+        ? `<a href="${st.segmentUrl}" target="_blank" rel="noopener">${nameIcon}${st.name}</a>`
+        : `${nameIcon}${st.name}`;
+      const distanceText = st.distance != null ? st.distance.toFixed(2) + ' км' : '—';
+      const distanceHtml = (st.pinUrl && st.distance != null)
+        ? `<a href="${st.pinUrl}" target="_blank" rel="noopener">${distanceText}</a>`
+        : distanceText;
+      return `
+      <tr>
+        <td class="splits-station-name ${nameCls}">${nameHtml}</td>
+        <td>${distanceHtml}</td>
+        ${colsVisible.split ? `<td>${st.splitDistance != null ? st.splitDistance.toFixed(2) + ' км' : '—'}</td>` : ''}
+        ${colsVisible.gain ? `<td>${st.elevGain != null ? (st.elevGain > 0 ? '+' + st.elevGain + ' м' : '0 м') : '—'}</td>` : ''}
+        ${colsVisible.loss ? `<td>${st.elevLoss != null ? (st.elevLoss > 0 ? '−' + st.elevLoss + ' м' : '0 м') : '—'}</td>` : ''}
+        <td class="splits-total-time splits-set-first">${valA > 0 ? secToTime(valA) + recordLabel(setA, st.key) + effortSuffix(valA, st.key, setA) : '—'}</td>
+        <td class="splits-total-time">${valB > 0 ? secToTime(valB) + recordLabel(setB, st.key) + effortSuffix(valB, st.key, setB) : '—'}</td>
+        <td>${diffCell}</td>
+      </tr>
+    `;
+    }).join('');
+
+    tableEl.innerHTML = `<thead>${headRow}</thead><tbody>${bodyRows}</tbody>`;
+  }
+
+  function updateBalancedTimeVisibility() {
+    const show = setA === 'balanced' || setB === 'balanced';
+    balancedWrap.style.display = show ? '' : 'none';
+  }
+
+  // If exactly one of the two dropdowns is "Равномерен график", set the график's
+  // total time to match the other selected result's finish time — or 8:00:00 if
+  // that other result is a DNF (no finish time to copy). Leaves the value alone
+  // if both or neither slot is set to balanced. The person can still edit the
+  // field by hand afterwards — this only re-fires when a dropdown selection changes.
+  const DNF_BALANCED_SEC = 8 * 3600; // 8:00:00
+  function syncBalancedTimeToOther() {
+    const aIsBalanced = setA === 'balanced';
+    const bIsBalanced = setB === 'balanced';
+    if (aIsBalanced === bIsBalanced) return; // both or neither — nothing to sync to
+    const otherKey = aIsBalanced ? setB : setA;
+    const otherFinish = finishTime(otherKey);
+    const targetSec = otherFinish == null ? DNF_BALANCED_SEC : otherFinish;
+    balancedTargetSec = targetSec;
+    balancedInput.value = secToTime(targetSec);
+  }
+
+  function render() {
+    renderSelects();
+    updateBalancedTimeVisibility();
+    syncBalancedTimeToOther();
+    renderTable();
+  }
+
+  function openModal() {
+    render();
+    overlay.classList.add('open');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    colsPanel.classList.remove('open');
+  }
+
+  // Simple client-side password gate for the Сравнения feature. Not intended
+  // to stop anyone determined (the password is visible in the page source to
+  // anyone who looks) — just a casual speed bump for regular visitors.
+  const SPLITS_PASSWORD = 'botcast';
+  let splitsUnlocked = false;
+  const pwOverlay = document.getElementById('splitsPasswordOverlay');
+  const pwInput   = document.getElementById('splitsPasswordInput');
+  const pwSubmit  = document.getElementById('splitsPasswordSubmit');
+  const pwCancel  = document.getElementById('splitsPasswordCancel');
+  const pwError   = document.getElementById('splitsPasswordError');
+
+  function openPasswordPrompt() {
+    if (!pwOverlay) { openModal(); return; } // fallback if markup is missing
+    pwError.style.display = 'none';
+    pwInput.value = '';
+    pwOverlay.classList.add('open');
+    setTimeout(() => pwInput.focus(), 50);
+  }
+  function closePasswordPrompt() {
+    pwOverlay.classList.remove('open');
+  }
+  function trySubmitPassword() {
+    if (pwInput.value === SPLITS_PASSWORD) {
+      splitsUnlocked = true;
+      closePasswordPrompt();
+      openModal();
+    } else {
+      pwError.style.display = '';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+  }
+
+  openBtn.addEventListener('click', () => {
+    if (splitsUnlocked) { openModal(); return; }
+    openPasswordPrompt();
+  });
+  if (pwSubmit) pwSubmit.addEventListener('click', trySubmitPassword);
+  if (pwCancel) pwCancel.addEventListener('click', closePasswordPrompt);
+  if (pwInput) pwInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') trySubmitPassword();
+    if (e.key === 'Escape') closePasswordPrompt();
+  });
+  if (pwOverlay) pwOverlay.addEventListener('click', e => { if (e.target === pwOverlay) closePasswordPrompt(); });
+
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+
+  colsBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    colsPanel.classList.toggle('open');
+  });
+  document.addEventListener('click', e => {
+    if (!colsWrap.contains(e.target)) colsPanel.classList.remove('open');
+  });
+  colsPanel.addEventListener('change', e => {
+    const cb = e.target.closest('input[data-col]');
+    if (!cb) return;
+    colsVisible[cb.getAttribute('data-col')] = cb.checked;
+    renderTable();
+  });
+
+  selectA.addEventListener('change', () => {
+    setA = selectA.value;
+    updateBalancedTimeVisibility();
+    syncBalancedTimeToOther();
+    renderTable();
+  });
+  selectB.addEventListener('change', () => {
+    setB = selectB.value;
+    updateBalancedTimeVisibility();
+    syncBalancedTimeToOther();
+    renderTable();
+  });
+  modeSlider.addEventListener('change', () => { displayMode = modeSlider.checked ? 'total' : 'split'; renderTable(); });
+  if (effortToggle) {
+    effortToggle.addEventListener('change', () => { effortMode = effortToggle.checked; renderTable(); });
+  }
+
+  balancedInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') balancedInput.blur();
+  });
+  balancedInput.addEventListener('change', () => {
+    const sec = splitTimeToSec(balancedInput.value.trim());
+    if (sec > 0) {
+      balancedTargetSec = sec;
+      renderTable();
+    } else {
+      balancedInput.value = secToTime(balancedTargetSec);
+    }
+  });
+})();
+
 }); // end DOMContentLoaded
 </script>
 <meta charset="UTF-8">
@@ -2930,6 +4279,13 @@ function renderRankings(key) {
   .page.active { display: block; }
 
   /* ── RECORDS PAGE ── */
+  .records-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
   .records-intro {
     max-width: 640px;
     margin-bottom: 2rem;
@@ -2945,6 +4301,52 @@ function renderRankings(key) {
     font-size: 0.88rem;
     color: var(--text-dim);
     line-height: 1.6;
+  }
+
+  .records-toggles {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .records-percent-checkbox-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+  }
+  .records-percent-checkbox-wrap input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent, var(--male));
+    cursor: pointer;
+  }
+
+  .records-scope-slider-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+  }
+  .records-scope-slider-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .rec-percent {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   .records-table-wrap {
@@ -3334,6 +4736,412 @@ function renderRankings(key) {
   .ironman-header p {
     font-size: 0.85rem;
     color: var(--text-muted);
+  }
+
+  .ironman-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .splits-compare-btn {
+    flex-shrink: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(200,168,75,0.08);
+    border: 1px solid var(--accent);
+    padding: 0.55rem 1.2rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .splits-compare-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* ── SPLITS COMPARISON MODAL ── */
+  .splits-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 1000;
+    padding: 4vh 1rem;
+    overflow-y: auto;
+  }
+  .splits-modal-overlay.open { display: block; }
+
+  .splits-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 1.75rem;
+    position: relative;
+  }
+
+  .splits-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 2rem;
+    height: 2rem;
+    line-height: 1;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .splits-modal-close:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  .splits-password-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 1100;
+    padding: 4vh 1rem;
+    overflow-y: auto;
+  }
+  .splits-password-overlay.open {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .splits-password-modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    max-width: 320px;
+    width: 100%;
+    padding: 1.5rem;
+  }
+  .splits-password-modal h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+  .splits-password-modal p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.9rem;
+    line-height: 1.5;
+  }
+  .splits-password-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.55rem 0.7rem;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+  .splits-password-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .splits-password-error {
+    color: var(--female, #e05c5c);
+    font-size: 0.8rem;
+    margin-top: 0.6rem;
+    margin-bottom: 0;
+  }
+  .splits-password-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+  .splits-password-btn {
+    border: 1px solid var(--border);
+    background: none;
+    padding: 0.5rem 1rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    color: var(--text-dim);
+  }
+  .splits-password-btn-secondary:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+  .splits-password-btn-primary {
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .splits-password-btn-primary:hover {
+    opacity: 0.85;
+  }
+
+  .splits-cols-toggle-wrap {
+    position: absolute;
+    top: 1rem;
+    right: 3.15rem;
+  }
+  .splits-cols-toggle-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 2rem;
+    height: 2rem;
+    line-height: 1;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .splits-cols-toggle-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .splits-cols-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 10;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    min-width: 12rem;
+    padding: 0.4rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .splits-cols-panel.open { display: block; }
+  .splits-cols-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .splits-cols-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .splits-cols-item input { accent-color: var(--accent); cursor: pointer; }
+
+  .splits-modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+  }
+  .splits-modal .perf-subtitle { margin-bottom: 1.25rem; }
+
+  .splits-modal-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .splits-mode-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .splits-mode-select {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.7rem;
+    cursor: pointer;
+  }
+  .splits-mode-select:hover { border-color: var(--accent); }
+
+  /* ── Fixed split/total slider, docked to the right edge of the screen ── */
+  .splits-mode-slider-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+  }
+  .splits-mode-slider-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .splits-effort-checkbox-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+    margin-left: auto;
+  }
+  .splits-effort-checkbox-wrap input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .splits-effort-estimate {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .splits-mode-slider {
+    position: relative;
+    display: inline-block;
+    width: 2.3rem;
+    height: 1.15rem;
+    cursor: pointer;
+  }
+  .splits-mode-slider input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .splits-mode-slider-track {
+    position: absolute;
+    inset: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    transition: border-color 0.15s;
+  }
+  .splits-mode-slider-thumb {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: calc(50% - 4px);
+    height: calc(100% - 6px);
+    background: var(--accent);
+    transition: transform 0.18s ease;
+  }
+  .splits-mode-slider input:checked ~ .splits-mode-slider-track .splits-mode-slider-thumb {
+    transform: translateX(calc(100% + 4px));
+  }
+  .splits-mode-slider input:hover ~ .splits-mode-slider-track {
+    border-color: var(--accent);
+  }
+
+  .splits-table-wrap {
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .splits-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .splits-table th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg3);
+    padding: 0.55rem 0.8rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .splits-table th.splits-set-group {
+    color: var(--accent);
+    border-left: 2px solid var(--border);
+  }
+  .splits-table td {
+    padding: 0.55rem 0.8rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(42,47,61,0.7);
+  }
+  .splits-table td.splits-station-name {
+    text-align: left;
+    font-weight: 400;
+    color: var(--text);
+  }
+  .splits-table td.splits-station-name a,
+  .splits-table td a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(255,255,255,0.35);
+    text-underline-offset: 2px;
+    opacity: 0.9;
+    transition: opacity 0.15s;
+  }
+  .splits-table td.splits-station-name a:hover,
+  .splits-table td a:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+  .splits-table td.splits-set-first {
+    border-left: 2px solid var(--border);
+  }
+  .splits-table tbody tr:last-child td { border-bottom: none; }
+  .splits-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+  .splits-total-time {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .splits-split-time {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .aid-official {
+    color: var(--male);
+    text-decoration: underline;
+    font-weight: 600;
+  }
+  .aid-custom {
+    color: var(--text-dim);
+    text-decoration: underline;
+  }
+  .splits-diff-neg {
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .splits-diff-pos {
+    color: var(--accent2);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .splits-diff-zero {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .splits-record-holder {
+    color: var(--text-muted);
+    font-size: 0.78em;
+    font-weight: 400;
+    font-variant-numeric: normal;
   }
 
   .im-controls-row {
@@ -4138,8 +5946,24 @@ function renderRankings(key) {
 </nav>
 
 <div id="pageRecords" class="page active">
-  <div class="records-intro">
-    <h2>Национални Рекорди</h2>
+  <div class="records-header-row">
+    <div class="records-intro">
+      <h2>Национални Рекорди</h2>
+    </div>
+    <div class="records-toggles">
+      <label class="records-percent-checkbox-wrap">
+        <input type="checkbox" id="recordsPercentSlider">
+        <span class="records-scope-slider-label" id="recordsPercentLabel">%WR</span>
+      </label>
+      <div class="records-scope-slider-wrap">
+        <span class="records-scope-slider-label">национален</span>
+        <label class="splits-mode-slider">
+          <input type="checkbox" id="recordsScopeSlider">
+          <span class="splits-mode-slider-track"><span class="splits-mode-slider-thumb"></span></span>
+        </label>
+        <span class="records-scope-slider-label">световен</span>
+      </div>
+    </div>
   </div>
   <div class="records-table-wrap">
     <table class="records-table">
@@ -4212,8 +6036,13 @@ function renderRankings(key) {
 </div>
 <div id="pageVitosha" class="page">
   <div class="ironman-header">
-    <h2>Витоша 100 Ранглиста (2017-2026)</h2>
-    <p class="perf-subtitle">Най-силни резултати в Обиколката на Витоша. За приравняванията е използвано отношението към топ 10 времена в света на Western States Endurance Run и Comrades Marathon.</p>
+    <div class="ironman-header-row">
+      <div>
+        <h2>Витоша 100 Ранглиста (2017-2026)</h2>
+        <p class="perf-subtitle">Най-силни резултати в Обиколката на Витоша. За приравняванията е използвано отношението към топ 10 времена в света на Western States Endurance Run и Comrades Marathon.</p>
+      </div>
+      <button id="splitsCompareBtn" class="splits-compare-btn" type="button">Сравнения</button>
+    </div>
   </div>
   <div class="ironman-filters">
     <label>Търсене:</label>
@@ -4298,8 +6127,24 @@ function renderRankings(key) {
 </footer>
 
 <div id="pageOthers" class="page">
-  <div class="records-intro">
-    <h2>Други значими постижения</h2>
+  <div class="records-header-row">
+    <div class="records-intro">
+      <h2>Други значими постижения</h2>
+    </div>
+    <div class="records-toggles">
+      <label class="records-percent-checkbox-wrap">
+        <input type="checkbox" id="othersPercentSlider">
+        <span class="records-scope-slider-label" id="othersPercentLabel">%WR</span>
+      </label>
+      <div class="records-scope-slider-wrap">
+        <span class="records-scope-slider-label">национален</span>
+        <label class="splits-mode-slider">
+          <input type="checkbox" id="othersScopeSlider">
+          <span class="splits-mode-slider-track"><span class="splits-mode-slider-thumb"></span></span>
+        </label>
+        <span class="records-scope-slider-label">световен</span>
+      </div>
+    </div>
   </div>
   <div class="records-table-wrap">
     <table class="records-table">
@@ -4391,6 +6236,64 @@ function renderRankings(key) {
       <div id="sideOutput" class="pc-side-output">
         <span class="sco-value" id="scoValue">??%</span>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="splitsPasswordOverlay" class="splits-password-overlay">
+  <div class="splits-password-modal">
+    <h3>Сравнения</h3>
+    <p>Въведете парола, за да продължите.</p>
+    <input type="password" id="splitsPasswordInput" class="splits-password-input" placeholder="Парола" autocomplete="off">
+    <p id="splitsPasswordError" class="splits-password-error" style="display:none;">Грешна парола.</p>
+    <div class="splits-password-actions">
+      <button id="splitsPasswordCancel" class="splits-password-btn splits-password-btn-secondary" type="button">Отказ</button>
+      <button id="splitsPasswordSubmit" class="splits-password-btn splits-password-btn-primary" type="button">Влез</button>
+    </div>
+  </div>
+</div>
+
+<div id="splitsModalOverlay" class="splits-modal-overlay">
+  <div class="splits-modal">
+    <button id="splitsModalClose" class="splits-modal-close" type="button" aria-label="Затвори">✕</button>
+    <div class="splits-cols-toggle-wrap" id="splitsColsToggleWrap">
+      <button id="splitsColsToggleBtn" class="splits-cols-toggle-btn" type="button" aria-label="Колони">☰</button>
+      <div class="splits-cols-panel" id="splitsColsPanel">
+        <label class="splits-cols-item"><input type="checkbox" data-col="split" checked> Сплит</label>
+        <label class="splits-cols-item"><input type="checkbox" data-col="gain"> Изкачване</label>
+        <label class="splits-cols-item"><input type="checkbox" data-col="loss"> Спускане</label>
+      </div>
+    </div>
+    <h2>Сравнение на междинни времена — Витоша 100</h2>
+    <p class="perf-subtitle"></p>
+    <div class="splits-modal-controls">
+      <label class="splits-mode-label">
+        Колона 1
+        <select id="splitsSelectA" class="splits-mode-select"></select>
+      </label>
+      <label class="splits-mode-label">
+        Колона 2
+        <select id="splitsSelectB" class="splits-mode-select"></select>
+      </label>
+      <label class="splits-mode-label" id="splitsBalancedTimeWrap" style="display:none;">
+        График
+        <input type="text" id="splitsBalancedTimeInput" class="splits-mode-select" value="7:00:00" style="width:6.5rem;" placeholder="ч:мм:сс">
+      </label>
+      <label class="splits-effort-checkbox-wrap" id="splitsEffortWrap">
+        <input type="checkbox" id="splitsEffortToggle">
+        <span class="splits-mode-slider-label">усилие</span>
+      </label>
+      <div class="splits-mode-slider-wrap">
+        <span class="splits-mode-slider-label">сплит</span>
+        <label class="splits-mode-slider">
+          <input type="checkbox" id="splitsModeSlider">
+          <span class="splits-mode-slider-track"><span class="splits-mode-slider-thumb"></span></span>
+        </label>
+        <span class="splits-mode-slider-label">време</span>
+      </div>
+    </div>
+    <div class="splits-table-wrap">
+      <table class="splits-table" id="splitsTable"></table>
     </div>
   </div>
 </div>
