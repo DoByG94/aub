@@ -49,8 +49,8 @@ const CALC_REFERENCES = [
   { key: "24h",  label: "24 часа", timeBased: false,  m: "319.61",  f: "278.62"  },
   { key: "vitosha",  label: "Витоша 100", timeBased: true,  m: "6:25:00",  f: "7:10:00"  },
   { key: "comrades",  label: "Комрадс", timeBased: true,  m: "5:13:58",  f: "5:44:54"  },
-  { key: "spartathlon",  label: "Спартатлон", timeBased: true,  m: "19:55:09",  f: "22:35:31"  },
-  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:21:24",  f: "8:02:38"  },
+  { key: "spartathlon",  label: "Спартатлон", timeBased: true,  m: "19:40:51",  f: "22:35:31"  },
+  { key: "ironman",  label: "Айрънмен", timeBased: true,  m: "7:19:17",  f: "8:02:38"  },
 ];
 
 // 4. TOP-10 TIMES (for performance % calculation)
@@ -108,27 +108,13 @@ const TOP10_REFS = {
   ],
 };
 
-// Computes average time (as "h:mm:ss") from an array of {pos, m, f} objects for one gender.
-function calcAvgTime(refs, gender) {
-  if (!refs || refs.length === 0) return "0:00:00";
-  const toS = t => { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + (p[2]||0); };
-  const avgSec = Math.round(refs.reduce((sum, r) => sum + toS(r[gender]), 0) / refs.length);
-  const h = Math.floor(avgSec / 3600);
-  const m = Math.floor((avgSec % 3600) / 60).toString().padStart(2, '0');
-  const s = (avgSec % 60).toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
-}
-
-const AVG_TOP_10 = {
-  "mm":   calcAvgTime(TOP10_REFS["marathon"], "m"),
-  "fm":   calcAvgTime(TOP10_REFS["marathon"], "f"),
-  "mhm":  calcAvgTime(TOP10_REFS["half"],     "m"),
-  "fhm":  calcAvgTime(TOP10_REFS["half"],     "f"),
-  "m5k":  calcAvgTime(TOP10_REFS["5k"],       "m"),
-  "f5k":  calcAvgTime(TOP10_REFS["5k"],       "f"),
-  "m10k": calcAvgTime(TOP10_REFS["10k"],      "m"),
-  "f10k": calcAvgTime(TOP10_REFS["10k"],      "f"),
-};
+// Ironman world-record splits (used for the %WR toggle on the Ironman tab).
+const IRONMAN_WR_SPLITS = [
+  { key: "swim",        label: "Плуване", time: "0:47:52" },
+  { key: "bike",        label: "Колело",  time: "3:51:16" },
+  { key: "run",         label: "Бягане",  time: "2:33:31" },
+  { key: "transitions", label: "T1+T2",   time: "0:06:38" },
+];
 
 // 5. Used to calculate an equivalent time for a different distance.
 // Vitosha 100 → 100 km flat equivalent
@@ -197,8 +183,31 @@ const GENDER_FACTORS = {
   "western-states": calcGenderFactor(GENDER_RATIO_REFS["western-states"]),
   "100km-road":     calcGenderFactor(GENDER_RATIO_REFS["100km-road"]),
 };
+
 // Vitosha gender factor = average of Comrades and WSER only (100km road excluded)
 GENDER_FACTORS["vitosha"] = (GENDER_FACTORS["comrades"] + GENDER_FACTORS["western-states"]) / 2;
+
+// Computes average time (as "h:mm:ss") from an array of {pos, m, f} objects for one gender.
+function calcAvgTime(refs, gender) {
+  if (!refs || refs.length === 0) return "0:00:00";
+  const toS = t => { const p = t.split(':').map(Number); return p[0]*3600 + p[1]*60 + (p[2]||0); };
+  const avgSec = Math.round(refs.reduce((sum, r) => sum + toS(r[gender]), 0) / refs.length);
+  const h = Math.floor(avgSec / 3600);
+  const m = Math.floor((avgSec % 3600) / 60).toString().padStart(2, '0');
+  const s = (avgSec % 60).toString().padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+const AVG_TOP_10 = {
+  "mm":   calcAvgTime(TOP10_REFS["marathon"], "m"),
+  "fm":   calcAvgTime(TOP10_REFS["marathon"], "f"),
+  "mhm":  calcAvgTime(TOP10_REFS["half"],     "m"),
+  "fhm":  calcAvgTime(TOP10_REFS["half"],     "f"),
+  "m5k":  calcAvgTime(TOP10_REFS["5k"],       "m"),
+  "f5k":  calcAvgTime(TOP10_REFS["5k"],       "f"),
+  "m10k": calcAvgTime(TOP10_REFS["10k"],      "m"),
+  "f10k": calcAvgTime(TOP10_REFS["10k"],      "f"),
+};
 
 // AID_STATIONS: ordered list of timing points on the current (2017+) course.
 //   key            — internal id, used to key split times in SPLIT_SETS below
@@ -1435,7 +1444,7 @@ const ENTRIES_WORLD = [
 const OTHER_ACHIEVEMENTS_WORLD = [
   { discipline: "Комрадс", gender: "m", name: "Tete Dijana", result: "5:13:58", year: 2023, race: "Comrades Down Run", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=108961&cat=M&year=all&country=all&length=all&Submit.x=17&Submit.y=11" },
   { discipline: "Комрадс", gender: "f", name: "Gerda Steyn", result: "5:44:33", year: 2026, race: "Comrades Up Run", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=108961&cat=W&year=all&country=all&length=all&Submit.x=-1&Submit.y=11" },
-  { discipline: "Спартатлон", gender: "m", name: "Fotis Zisimopoulos", result: "19:55:09", year: 2023, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=113807&cat=M&year=all&country=all&length=all&Submit.x=21&Submit.y=9" },
+  { discipline: "Спартатлон", gender: "m", name: "Tamas Bodis", result: "19:40:51", year: 2026, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=113807&cat=M&year=all&country=all&length=all&Submit.x=21&Submit.y=9" },
   { discipline: "Спартатлон", gender: "f", name: "Camille Herron", result: "22:35:31", year: 2023, race: "Spartathlon", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=113807&cat=W&year=all&country=all&length=all&Submit.x=14&Submit.y=14" },
   { discipline: "Уестърн Стейтс", gender: "m", name: "Vincent Bouillard", result: "13:46:15", year: 2026, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=125282&cat=M&year=all&country=all&length=all&Submit.x=35&Submit.y=8" },
   { discipline: "Уестърн Стейтс", gender: "f", name: "Jenn Lichter", result: "15:28:05", year: 2026, race: "Western States", url: "https://statistik.d-u-v.org/getresulteventalltime.php?event=125282&cat=W&year=all&country=all&length=all&Submit.x=11&Submit.y=13" },
@@ -2142,6 +2151,18 @@ function renderRankings(key) {
     return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
   }
 
+  const wrCheckbox = document.getElementById('imWRPercent');
+
+  // "(92.2%)" suffix: WR split / athlete split * 100. Flagged/unparseable splits get nothing.
+  function wrSuffix(e, key) {
+    const wr = IRONMAN_WR_SPLITS.find(w => w.key === key);
+    if (!wr) return '';
+    const athlete = toSec(e[key]);
+    const wrSec = toSec(wr.time);
+    if (!isFinite(athlete) || athlete <= 0 || !isFinite(wrSec)) return '';
+    return percentSuffix((wrSec / athlete) * 100);
+  }
+
   function buildImTable(entries, gender) {
     if (entries.length === 0) {
       return `<div class="empty-state">Няма въведени резултати.</div>`;
@@ -2168,15 +2189,18 @@ function renderRankings(key) {
       return `<th class="${cls}" data-sort="${c.key}">${c.label}</th>`;
     }).join('');
 
+    const showWR = !!(wrCheckbox && wrCheckbox.checked);
+    const splitCell = (e, key) => `<td class="im-split">${e[key]}${showWR ? wrSuffix(e, key) : ''}</td>`;
+
     const rows = entries.map((e, i) => `
       <tr>
         <td class="im-rank ${rankClass(e._rank !== undefined ? e._rank : i)}">${(e._rank !== undefined ? e._rank : i) + 1}</td>
         <td class="im-name">${e.firstName} ${e.lastName}</td>
         <td class="im-total">${e.total}</td>
-        <td class="im-split">${e.swim}</td>
-        <td class="im-split">${e.bike}</td>
-        <td class="im-split">${e.run}</td>
-        <td class="im-split">${e.transitions}</td>
+        ${splitCell(e, 'swim')}
+        ${splitCell(e, 'bike')}
+        ${splitCell(e, 'run')}
+        ${splitCell(e, 'transitions')}
         <td class="im-ag">${e.ageGroup}</td>
         <td class="im-event">${e.event} · ${e.year}</td>
       </tr>`).join('');
@@ -2385,6 +2409,7 @@ function renderRankings(key) {
   ageFilter.addEventListener('change', renderIronman);
   searchBox.addEventListener('input',  renderIronman);
   bestOnlyIm.addEventListener('change', renderIronman);
+  if (wrCheckbox) wrCheckbox.addEventListener('change', renderIronman);
 
   // Inject "Обновена" label
   const imUpdatedEl = document.getElementById('imUpdated');
@@ -6051,6 +6076,8 @@ function renderRankings(key) {
       <input class="im-search" id="imSearch" type="text" placeholder="Име или събитие…">
       <div class="im-filter-sep"></div>
       <label class="im-checkbox-label"><input type="checkbox" id="imBestOnly"> Само най-добър резултат</label>
+      <div class="im-filter-sep"></div>
+      <label class="im-checkbox-label"><input type="checkbox" id="imWRPercent"> %WR</label>
       <div class="im-filter-sep"></div>
       <label>Възр. група:</label>
       <select id="imAgeFilter">
